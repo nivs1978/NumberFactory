@@ -392,7 +392,7 @@ function getConveyerLineCellPoints(x, y) {
             var cell = matrix[i][conveyorStartY];
             if (cell.Type === CellType.EMPTY) {
                 inEmptycell = true;
-                if (cellPoints.length === 1) {
+                if (cellPoints.length === 0) {
                     cellPoints.push({ x: i, y: conveyorStartY });
                 }
             } else if (cell.Type != CellType.EMPTY && inEmptycell) {

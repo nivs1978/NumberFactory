@@ -22,8 +22,6 @@ const ctx = canvas.getContext('2d', { alpha: false });
 const target = new Target(ctx);
 let extractors = [];
 
-const gridSize = 1024;
-const cellSize = 10;
 let scale = 2;
 let drawMode = DrawModeType.NONE;
 
@@ -35,9 +33,9 @@ let startX, startY;
 let offsetX = canvas.width / 2, offsetY = canvas.height / 2;
 let hoverX = -1, hoverY = -1;
 let conveyorStartX = -1, conveyorStartY = -1;
-let conveyerDrawStartDirection = DrawStartDirectionType.HORIZONTAL;
+let conveyerDrawStartDirection = DirectionType.HORIZONTAL;
 
-const beltGraph = new Map();
+const beltGraph = new Graph();
 
 class Cell {
     constructor(backgroundColor) {
@@ -85,10 +83,11 @@ for (let x = 509; x <= 514; x++) {
     for (let y = 509; y <= 514; y++) {
         var cell = matrix[x][y];
         cell.Type = CellType.TARGET;
+        cell.Component = target;
     }
 }
 
-function enableNumber(x, y) {
+function enableNumber(x, y, number) {
     for (let i = -1; i <= 1; i++) {
         for (let j = -1; j <= 1; j++) {
             if (x + i >= 0 && x + i < gridSize && y + j >= 0 && y + j < gridSize) {
@@ -106,9 +105,10 @@ function enableNumber(x, y) {
 }
 
 // Insert 1024 random numbers between 1 and 9
+/*
 for (let i = 0; i < 1024; i++) {
     var pos = getValidPosition();
-    var number = Math.floor(Math.random() * 9) + 1;
+    let number = Math.floor(Math.random() * 9) + 1;
     if (number <= target.Level) {
         enableNumber(pos.x, pos.y);
     } else
@@ -118,8 +118,21 @@ for (let i = 0; i < 1024; i++) {
         cell.Type = CellType.NUMBER;
     }
 }
+    */
 
-function drawGrid() {
+// Initial test data
+function initializeTestData() {
+    enableNumber(520, 500, 1);
+    let extractor = new Extractor(ctx, 1, 520, 500);
+    extractors.push(extractor);
+    setCellComponent(520, 500, extractor);
+    let points = [{ x: 518, y: 500, }, { x: 513, y: 500, }, { x: 513, y: 508 }, {x: 490, y: 508}, {x: 490, y: 490}, {x: 510, y: 490}, {x: 510, y: 508}];
+    convertConveyerLine(points, extractor, target);
+}
+
+initializeTestData();
+
+function drawGrid(timestamp) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = '#2870A5';
     ctx.lineWidth = 1;
@@ -147,6 +160,12 @@ function drawGrid() {
                     }
                     ctx.fillText(cell.Number, drawX + scaledCellSize / 2, drawY + scaledCellSize / 2 + scale);
                 }
+/*                else {
+                    // draw x and y coordinates in the center
+                    ctx.fillStyle = 'black';
+                    ctx.font = `${scale*2.5}px Arial`;
+                    ctx.fillText(x + ',' + y, drawX + scaledCellSize / 2, drawY + scaledCellSize / 2);
+                }*/
             }
         }
     }
@@ -175,7 +194,7 @@ function drawGrid() {
         ctx.lineWidth = 8 * scale;
         ctx.beginPath();
         ctx.moveTo(conveyorStartX * scaledCellSize + offsetX + scaledCellSize / 2, conveyorStartY * scaledCellSize + offsetY + scaledCellSize / 2);
-        if (conveyerDrawStartDirection === DrawStartDirectionType.HORIZONTAL) {
+        if (conveyerDrawStartDirection === DirectionType.HORIZONTAL) {
             ctx.lineTo(hoverX * scaledCellSize + offsetX + scaledCellSize / 2, conveyorStartY * scaledCellSize + offsetY + scaledCellSize / 2);
             ctx.lineTo(hoverX * scaledCellSize + offsetX + scaledCellSize / 2, hoverY * scaledCellSize + offsetY + scaledCellSize / 2);
         } else {
@@ -198,12 +217,14 @@ function drawGrid() {
         const posY = extractor.tileY * scaledCellSize + offsetY + scaledCellSize * 0.5;
         extractor.draw(posX, posY, scaledCellSize);
     }
+
+    beltGraph.draw(ctx, cellSize, scale, offsetX, offsetY, timestamp);
 }
 
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    drawGrid();
+//    drawGrid();
 }
 
 function handleScroll(event) {
@@ -234,7 +255,7 @@ function handleScroll(event) {
     offsetX = Math.min(0, Math.max(maxOffsetX, offsetX));
     offsetY = Math.min(0, Math.max(maxOffsetY, offsetY));
 
-    drawGrid();
+//    drawGrid();
 }
 
 function setCellComponent(x, y, component) {
@@ -282,7 +303,7 @@ function handleMouseDown(event) {
                     let extractor = new Extractor(ctx, cell.Number, hoverX, hoverY);
                     extractors.push(extractor);
                     setCellComponent(hoverX, hoverY, extractor);
-                    drawGrid();
+//                    drawGrid();
                 }
             }
         }
@@ -316,7 +337,7 @@ function handleMouseMove(event) {
             offsetY = maxOffsetY;
         }
 
-        drawGrid();
+//        drawGrid();
     } else {
         const mouseX = event.clientX;
         const mouseY = event.clientY;
@@ -335,17 +356,15 @@ function handleMouseMove(event) {
             hoverY = -1;
         }
 
-        drawGrid();
+//        drawGrid();
 
         const scaledCellSize = cellSize * scale;
 
         if (drawMode === DrawModeType.CONVEYER) {
             if ((hoverX-1==conveyorStartX && hoverY==conveyorStartY) || (hoverX+1==conveyorStartX && hoverY==conveyorStartY)) {
-                conveyerDrawStartDirection = DrawStartDirectionType.HORIZONTAL;
-                console.log("Horizontal");
+                conveyerDrawStartDirection = DirectionType.HORIZONTAL;
             } else if ((hoverX==conveyorStartX && hoverY-1==conveyorStartY) || (hoverX==conveyorStartX && hoverY+1==conveyorStartY)) {
-                conveyerDrawStartDirection = DrawStartDirectionType.VERTICAL;
-                console.log("Vertical");
+                conveyerDrawStartDirection = DirectionType.VERTICAL;
             }
             if (hoverX >= 0 && hoverY >= 0 && hoverX < gridSize && hoverY < gridSize) {
                 ctx.fillStyle = 'rgba(0, 255, 0, 0.25)';
@@ -385,7 +404,7 @@ function getConveyerLineCellPoints(x, y) {
     let cellPoints = [];
     let inEmptycell = false;
 
-    if (conveyerDrawStartDirection === DrawStartDirectionType.HORIZONTAL) {
+    if (conveyerDrawStartDirection === DirectionType.HORIZONTAL) {
         const endX = x;
         const stepX = conveyorStartX < x ? 1 : -1;
         for (let i = conveyorStartX; i !== endX + stepX; i += stepX) {
@@ -454,7 +473,7 @@ function getConveyerLineCellPoints(x, y) {
     return cellPoints;
 }
 
-function drawHorizontalConveyerLine(start, end) {
+function convertHorizontalConveyerLine(start, end) {
     let i = start.x;
     const step = (end.x > start.x) ? 1 : -1;
     while (i !== end.x) {
@@ -468,7 +487,7 @@ function drawHorizontalConveyerLine(start, end) {
     cell.Type = CellType.CONVEYER;
 }
 
-function drawVerticalConveyerLine(start, end) {
+function convertVerticalConveyerLine(start, end) {
     let j = start.y;
     const step = (end.y > start.y) ? 1 : -1;
     while (j !== end.y) {
@@ -482,28 +501,37 @@ function drawVerticalConveyerLine(start, end) {
     cell.Type = CellType.CONVEYER;
 }
 
+function convertConveyerLine(points, startComponent, endComponent)
+{
+    if (points.length === 3) {
+        if (conveyerDrawStartDirection === DirectionType.HORIZONTAL) {
+            convertHorizontalConveyerLine(points[0], points[1]);
+            convertVerticalConveyerLine(points[1], points[2]);
+        } else {
+            convertVerticalConveyerLine(points[0], points[1]);
+            convertHorizontalConveyerLine(points[1], points[2]);
+        }
+    } else if (points.length === 2) {
+        if (points[0].x === points[1].x) {
+            convertVerticalConveyerLine(points[0], points[1]);
+        } else {
+            convertHorizontalConveyerLine(points[0], points[1]);
+        }
+    }
+    // Add the conveyer to the belt graph
+    beltGraph.addBelt(points, startComponent, endComponent);
+}
+
 function convertToConveyer(mouseX, mouseY) {
     const canvasRect = canvas.getBoundingClientRect();
     const x = Math.floor((mouseX - canvasRect.left - offsetX) / (cellSize * scale));
     const y = Math.floor((mouseY - canvasRect.top - offsetY) / (cellSize * scale));
 
-    let points = getConveyerLineCellPoints(x, y);
+    var startComponent = matrix[conveyorStartX][conveyorStartY].Component;
+    var endComponent = matrix[x][y].Component;
 
-    if (points.length === 3) {
-        if (conveyerDrawStartDirection === DrawStartDirectionType.HORIZONTAL) {
-            drawHorizontalConveyerLine(points[0], points[1]);
-            drawVerticalConveyerLine(points[1], points[2]);
-        } else {
-            drawVerticalConveyerLine(points[0], points[1]);
-            drawHorizontalConveyerLine(points[1], points[2]);
-        }
-    } else if (points.length === 2) {
-        if (points[0].x === points[1].x) {
-            drawVerticalConveyerLine(points[0], points[1]);
-        } else {
-            drawHorizontalConveyerLine(points[0], points[1]);
-        }
-    }
+    let points = getConveyerLineCellPoints(x, y);
+    convertConveyerLine(points, startComponent, endComponent);
 }
 
 function handleMouseUp(event) {
@@ -514,7 +542,7 @@ function handleMouseUp(event) {
         const mouseX = event.clientX;
         const mouseY = event.clientY;
         convertToConveyer(mouseX, mouseY);
-        drawGrid();
+//        drawGrid();
     }
 }
 
@@ -552,4 +580,47 @@ canvas.addEventListener('contextmenu', event => event.preventDefault()); // Prev
 resizeCanvas();
 offsetX = canvas.width / 2 - (gridSize * cellSize * scale) / 2;
 offsetY = canvas.height / 2 - (gridSize * cellSize * scale) / 2;
-drawGrid();
+//drawGrid();
+
+function updateBeltItems(beltSegment, deltaTime, speed) {
+    for (let item of beltSegment.items) {
+        item.distance -= (deltaTime * speed);
+        if (item.distance <= 0) {
+            if (beltSegment.next) {
+                beltSegment.next.items.push(new BeltItem(item.type, beltSegment.next.distanceToInsertAtStart));
+                beltSegment.items = beltSegment.items.filter(i => i !== item);
+            } else {
+                item.distance = 0;
+            }
+        }
+    }
+}
+
+function renderBeltItems(ctx, beltSegment, cellSize) {
+    for (let item of beltSegment.items) {
+        let x = beltSegment.start.x * cellSize;
+        let y = beltSegment.start.y * cellSize;
+
+        if (beltSegment.direction === "horizontal") {
+            x += (1 - item.distance) * cellSize;
+        } else if (beltSegment.direction === "vertical") {
+            y += (1 - item.distance) * cellSize;
+        }
+
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(x, y, cellSize, cellSize);
+    }
+}
+
+function mainLoop(timestamp) {
+/*
+    for (let segment of beltSegments) {
+        updateBeltItems(segment, deltaTime, speed);
+    }
+*/
+    drawGrid(timestamp);
+
+    requestAnimationFrame(mainLoop);
+}
+
+mainLoop();

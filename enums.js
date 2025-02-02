@@ -16,7 +16,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-const DrawStartDirectionType = Object.freeze({
+const DirectionType = Object.freeze({
     HORIZONTAL: 0,
     VERTICAL: 1
 });

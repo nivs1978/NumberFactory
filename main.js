@@ -35,7 +35,7 @@ let hoverX = -1, hoverY = -1;
 let conveyorStartX = -1, conveyorStartY = -1;
 let conveyerDrawStartDirection = DirectionType.HORIZONTAL;
 
-const beltGraph = new Graph();
+const beltGraph = new BeltGraph();
 
 class Cell {
     constructor(backgroundColor) {
@@ -126,8 +126,13 @@ function initializeTestData() {
     let extractor = new Extractor(ctx, 1, 520, 500);
     extractors.push(extractor);
     setCellComponent(520, 500, extractor);
-    let points = [{ x: 518, y: 500, }, { x: 513, y: 500, }, { x: 513, y: 508 }, {x: 490, y: 508}, {x: 490, y: 490}, {x: 510, y: 490}, {x: 510, y: 508}];
-    convertConveyerLine(points, extractor, target);
+    let points = [{ x: 519, y: 500, }, { x: 513, y: 500, }, { x: 513, y: 508 }, {x: 490, y: 508}, {x: 490, y: 490}, {x: 510, y: 490}, {x: 510, y: 509}];
+    var segment = convertConveyerLine(points, extractor, target);
+    segment.addItem(new BeltItem(1));
+    let points2 = [{ x: 519, y: 501}, {x:519, y: 510}, {x: 530, y: 510}];
+    conveyerDrawStartDirection = DirectionType.VERTICAL;
+    var segment2= convertConveyerLine(points2, extractor, target);
+    segment2.addItem(new BeltItem(2));
 }
 
 initializeTestData();
@@ -139,7 +144,7 @@ function drawGrid(timestamp) {
     ctx.fillStyle='#000000';
     ctx.font = `${cellSize * scale}px Arial`;
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.textBaseline = 'miWddle';
 
     const scaledCellSize = cellSize * scale;
 
@@ -217,8 +222,6 @@ function drawGrid(timestamp) {
         const posY = extractor.tileY * scaledCellSize + offsetY + scaledCellSize * 0.5;
         extractor.draw(posX, posY, scaledCellSize);
     }
-
-    beltGraph.draw(ctx, cellSize, scale, offsetX, offsetY, timestamp);
 }
 
 function resizeCanvas() {
@@ -478,12 +481,12 @@ function convertHorizontalConveyerLine(start, end) {
     const step = (end.x > start.x) ? 1 : -1;
     while (i !== end.x) {
         var cell = matrix[i][start.y];
-        cell.BackgroundColor = 'black';
+        //cell.BackgroundColor = 'black';
         cell.Type = CellType.CONVEYER;
         i += step;
     }
     cell = matrix[end.x][start.y];
-    cell.BackgroundColor = 'black';
+    //cell.BackgroundColor = 'black';
     cell.Type = CellType.CONVEYER;
 }
 
@@ -519,7 +522,9 @@ function convertConveyerLine(points, startComponent, endComponent)
         }
     }
     // Add the conveyer to the belt graph
-    beltGraph.addBelt(points, startComponent, endComponent);
+    var segment = beltGraph.addBelt(points, startComponent, endComponent);
+    startComponent.addBelt(segment);
+    return segment;
 }
 
 function convertToConveyer(mouseX, mouseY) {
@@ -582,45 +587,21 @@ offsetX = canvas.width / 2 - (gridSize * cellSize * scale) / 2;
 offsetY = canvas.height / 2 - (gridSize * cellSize * scale) / 2;
 //drawGrid();
 
-function updateBeltItems(beltSegment, deltaTime, speed) {
-    for (let item of beltSegment.items) {
-        item.distance -= (deltaTime * speed);
-        if (item.distance <= 0) {
-            if (beltSegment.next) {
-                beltSegment.next.items.push(new BeltItem(item.type, beltSegment.next.distanceToInsertAtStart));
-                beltSegment.items = beltSegment.items.filter(i => i !== item);
-            } else {
-                item.distance = 0;
-            }
-        }
-    }
-}
-
-function renderBeltItems(ctx, beltSegment, cellSize) {
-    for (let item of beltSegment.items) {
-        let x = beltSegment.start.x * cellSize;
-        let y = beltSegment.start.y * cellSize;
-
-        if (beltSegment.direction === "horizontal") {
-            x += (1 - item.distance) * cellSize;
-        } else if (beltSegment.direction === "vertical") {
-            y += (1 - item.distance) * cellSize;
-        }
-
-        ctx.fillStyle = 'blue';
-        ctx.fillRect(x, y, cellSize, cellSize);
-    }
-}
-
 function mainLoop(timestamp) {
-/*
-    for (let segment of beltSegments) {
-        updateBeltItems(segment, deltaTime, speed);
-    }
-*/
     drawGrid(timestamp);
-
+    beltGraph.draw(ctx, cellSize, scale, offsetX, offsetY, timestamp);
     requestAnimationFrame(mainLoop);
 }
 
+// Game engine background worker that runs independant of frame rate / screen update
+function tick() {
+    // loop trough extractors
+    beltGraph.tick();
+
+    for (let extractor of extractors) {
+        extractor.outputNumbers();
+    }
+}
+
 mainLoop();
+setInterval(tick, tickDelay);

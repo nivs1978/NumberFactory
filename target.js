@@ -44,7 +44,7 @@ class Target {
         this.ctx.fillStyle = 'white';
         this.ctx.font = Math.round(zoom*2) + 'px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText(this.Level, x, y - size / 4);
+        this.ctx.fillText(this.Level, x, y - size / 5);
 
         // draw count and target count as x/y in the center
         this.ctx.fillStyle = 'lightgreen';

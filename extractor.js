@@ -22,6 +22,11 @@ class Extractor {
         this.Number = number;
         this.tileX = tileX;
         this.tileY = tileY;
+        this.belts = [];
+        this.numbersPerSecond = 1.0;
+        this.lastNumberTime = Date.now();
+        this.lastBeltOutputIndex = -1;
+        this.numberTimer = setInterval(() => this.outputNumbers(), 1000.0 / this.numbersPerSecond);
     }
 
     draw(x, y, zoom) {
@@ -46,6 +51,21 @@ class Extractor {
         this.ctx.fillStyle = 'white';
         this.ctx.font = Math.round(zoom*2) + 'px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText(this.Number, x, y+size/12);
+        this.ctx.fillText(this.Number, x, y+size/4);
+    }
+
+    addBelt(belt) {
+        this.belts.push(belt);
+    }
+
+    outputNumbers() {
+        if (this.belts.length == 0) {
+            return;
+        }
+        this.lastBeltOutputIndex = (this.lastBeltOutputIndex + 1) % this.belts.length;
+        const belt = this.belts[this.lastBeltOutputIndex];
+        if (belt.hasRoomForItem()){
+            belt.addItem(new BeltItem(this.Number));
+        }
     }
 }

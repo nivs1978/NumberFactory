@@ -29,11 +29,14 @@ class BeltSegment {
         for (let i = 0; i < points.length - 1; i++) {
             let dx = points[i + 1].x - points[i].x;
             let dy = points[i + 1].y - points[i].y;
-            const length = Math.abs(points[i + 1].x - points[i].x) + Math.abs(points[i + 1].y - points[i].y);
+            let length = Math.abs(points[i + 1].x - points[i].x) + Math.abs(points[i + 1].y - points[i].y);
             dx = dx / length;
             dy = dy / length;
             let x = points[i].x;
             let y = points[i].y;
+            if (i==points.length-2) {
+                length++;
+            }
             for (let j = 0; j < length; j++) {
                 this.segmentCells.push({ x, y, dx, dy });
                 x += dx;
@@ -52,17 +55,23 @@ class BeltSegment {
     }
 
     moveBeltItems() {
+        if (this.items.length > 0 && this.items[0].distance >= this.length-1) {
+            if (this.next instanceof Target)
+            {
+                let item = this.items.shift();
+                this.next.addNumber(item.number);
+            }
+        }
+
         for (let i = this.items.length-1;i>=0;i--) {
             let item = this.items[i];
-            var canMove = item.distance < this.length;
+            var canMove = item.distance < this.length+2;
             if (i>0) {
-                canMove = this.items[i-1].distance - item.distance > 1.0;
+                canMove = this.items[i-1].distance - item.distance >= 1.0;
             }
             if (canMove) {
                 item.distance += tickDelay*beltSpeed/1000;
                 this.updateItemPosition(item);                
-            } else {
-                console.log("Item cannot move, check if conveyer is connected to another belt, target or component");
             }
         }
         // check if item at position 0 is at end of belt and transfer it to next belt, target or component
@@ -87,7 +96,7 @@ class BeltSegment {
     }
 
     hasRoomForItem() {
-        return this.items.length < this.length && this.items[this.items.length - 1].distance > 1.0;
+        return this.items.length==0 || (this.items.length < this.length && this.items[this.items.length - 1].distance > 1.0);
     }
 
     addItem(item) {

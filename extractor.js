@@ -23,10 +23,11 @@ class Extractor {
         this.tileX = tileX;
         this.tileY = tileY;
         this.belts = [];
-        this.numbersPerSecond = 1.0;
+        this.beltsPerSecond = 2.0;
         this.lastNumberTime = Date.now();
         this.lastBeltOutputIndex = -1;
-        this.numberTimer = setInterval(() => this.outputNumbers(), 1000.0 / this.numbersPerSecond);
+        this.tickDelay= 1000.0 / this.beltsPerSecond;
+        this.numberTimer = setInterval(() => this.outputNumbers(), this.tickDelay);
     }
 
     draw(x, y, zoom) {

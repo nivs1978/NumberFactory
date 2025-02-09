@@ -16,6 +16,13 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+//todo list:
+// Implement extending existing belt. This should just add more points to the existing belt. If the extensions hit a target, set this in next.
+// Implement splitting from an existing belt, at a split, every other number should slide to the new segment and others go to the old segment. If there is room.
+// Implement merging to an existing belt. The existing belt should be split at the intersection, so the original belt is shortened and two new belt from the merge cell to the end of the belt should be created. Set the proper prev and next.
+// Implement demolish functionality (draw rectangle to erase everything within)
+// Implement 
+
 const canvas = document.getElementById('bitFactory');
 const ctx = canvas.getContext('2d', { alpha: false });
 
@@ -24,6 +31,7 @@ let extractors = [];
 
 let scale = 2;
 let drawMode = DrawModeType.NONE;
+let scaledCellSize = cellSize * scale;
 
 const backgroundColors = ['#205987', '#215B8A', '#225C8C', '#225E8F'];
 
@@ -105,12 +113,12 @@ function enableNumber(x, y, number) {
 }
 
 // Insert 1024 random numbers between 1 and 9
-/*
+
 for (let i = 0; i < 1024; i++) {
     var pos = getValidPosition();
     let number = Math.floor(Math.random() * 9) + 1;
-    if (number <= target.Level) {
-        enableNumber(pos.x, pos.y);
+    if (number == 1) {
+        enableNumber(pos.x, pos.y, 1);
     } else
     {
         var cell = matrix[pos.x][pos.y];
@@ -118,24 +126,41 @@ for (let i = 0; i < 1024; i++) {
         cell.Type = CellType.NUMBER;
     }
 }
-    */
-
+    
+/*
 // Initial test data
 function initializeTestData() {
     enableNumber(520, 500, 1);
     let extractor = new Extractor(ctx, 1, 520, 500);
     extractors.push(extractor);
     setCellComponent(520, 500, extractor);
-    let points = [{ x: 519, y: 500, }, { x: 513, y: 500, }, { x: 513, y: 508 }, {x: 490, y: 508}, {x: 490, y: 490}, {x: 510, y: 490}, {x: 510, y: 509}];
+   /* let points = [{ x: 519, y: 500, }, { x: 513, y: 500, }, { x: 513, y: 508 }, {x: 490, y: 508}, {x: 490, y: 490}, {x: 510, y: 490}, {x: 510, y: 509}];
     var segment = convertConveyerLine(points, extractor, target);
     segment.addItem(new BeltItem(1));
-    let points2 = [{ x: 519, y: 501}, {x:519, y: 510}, {x: 530, y: 510}];
+    let points2 = [{ x: 519, y: 501}, {x:519, y: 510}, {x: 510, y: 510}];
     conveyerDrawStartDirection = DirectionType.VERTICAL;
     var segment2= convertConveyerLine(points2, extractor, target);
-    segment2.addItem(new BeltItem(2));
-}
+    segment2.addItem(new BeltItem(2));*/
+//}
 
-initializeTestData();
+//initializeTestData();
+
+function drawSuggestedConveyer()
+{
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 8 * scale;
+    ctx.beginPath();
+    ctx.moveTo(conveyorStartX * scaledCellSize + offsetX + scaledCellSize / 2, conveyorStartY * scaledCellSize + offsetY + scaledCellSize / 2);
+    if (conveyerDrawStartDirection === DirectionType.HORIZONTAL) {
+        ctx.lineTo(hoverX * scaledCellSize + offsetX + scaledCellSize / 2, conveyorStartY * scaledCellSize + offsetY + scaledCellSize / 2);
+        ctx.lineTo(hoverX * scaledCellSize + offsetX + scaledCellSize / 2, hoverY * scaledCellSize + offsetY + scaledCellSize / 2);
+    } else {
+        ctx.lineTo(conveyorStartX * scaledCellSize + offsetX + scaledCellSize / 2, hoverY * scaledCellSize + offsetY + scaledCellSize / 2);
+        ctx.lineTo(hoverX * scaledCellSize + offsetX + scaledCellSize / 2, hoverY * scaledCellSize + offsetY + scaledCellSize / 2);
+    }
+    ctx.stroke();
+    ctx.lineWidth = 1;
+}
 
 function drawGrid(timestamp) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -146,8 +171,6 @@ function drawGrid(timestamp) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'miWddle';
 
-    const scaledCellSize = cellSize * scale;
-
     for (let x = 0; x < gridSize; x++) {
         for (let y = 0; y < gridSize; y++) {
             const drawX = x * scaledCellSize + offsetX;
@@ -157,20 +180,14 @@ function drawGrid(timestamp) {
                 ctx.fillStyle = cell.BackgroundColor;
                 ctx.fillRect(drawX, drawY, scaledCellSize, scaledCellSize);
                 if (cell.Type == CellType.NUMBER) {
-                    if (cell.Number <= target.Level)
+                    if (cell.Number <= target.level)
                     {
                     ctx.fillStyle = '#cccccc';
                     } else {
                         ctx.fillStyle = '#9999ff';
                     }
-                    ctx.fillText(cell.Number, drawX + scaledCellSize / 2, drawY + scaledCellSize / 2 + scale);
+                    ctx.fillText(cell.Number, drawX + scaledCellSize / 2, drawY + scaledCellSize / 2 + scale*4);
                 }
-/*                else {
-                    // draw x and y coordinates in the center
-                    ctx.fillStyle = 'black';
-                    ctx.font = `${scale*2.5}px Arial`;
-                    ctx.fillText(x + ',' + y, drawX + scaledCellSize / 2, drawY + scaledCellSize / 2);
-                }*/
             }
         }
     }
@@ -195,39 +212,13 @@ function drawGrid(timestamp) {
     }
 
     if (isDrawingConveyor && conveyorStartX >= 0 && conveyorStartY >= 0) {
-        ctx.strokeStyle = 'black';
-        ctx.lineWidth = 8 * scale;
-        ctx.beginPath();
-        ctx.moveTo(conveyorStartX * scaledCellSize + offsetX + scaledCellSize / 2, conveyorStartY * scaledCellSize + offsetY + scaledCellSize / 2);
-        if (conveyerDrawStartDirection === DirectionType.HORIZONTAL) {
-            ctx.lineTo(hoverX * scaledCellSize + offsetX + scaledCellSize / 2, conveyorStartY * scaledCellSize + offsetY + scaledCellSize / 2);
-            ctx.lineTo(hoverX * scaledCellSize + offsetX + scaledCellSize / 2, hoverY * scaledCellSize + offsetY + scaledCellSize / 2);
-        } else {
-            ctx.lineTo(conveyorStartX * scaledCellSize + offsetX + scaledCellSize / 2, hoverY * scaledCellSize + offsetY + scaledCellSize / 2);
-            ctx.lineTo(hoverX * scaledCellSize + offsetX + scaledCellSize / 2, hoverY * scaledCellSize + offsetY + scaledCellSize / 2);
-        }
-        ctx.stroke();
-        ctx.lineWidth = 1;
-    }
-
-    // Draw the target in the center of the grid
-    const centerX = (gridSize / 2) * scaledCellSize + offsetX;
-    const centerY = (gridSize / 2) * scaledCellSize + offsetY;
-    target.draw(centerX, centerY, scaledCellSize);
-
-    // Draw extractors
-    for (let i = 0; i < extractors.length; i++) {
-        const extractor = extractors[i];
-        const posX = extractor.tileX * scaledCellSize + offsetX + scaledCellSize * 0.5;
-        const posY = extractor.tileY * scaledCellSize + offsetY + scaledCellSize * 0.5;
-        extractor.draw(posX, posY, scaledCellSize);
+        drawSuggestedConveyer();
     }
 }
 
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-//    drawGrid();
 }
 
 function handleScroll(event) {
@@ -246,6 +237,8 @@ function handleScroll(event) {
     }
     scale = Math.max(1, Math.min(5, scale));
 
+    scaledCellSize = cellSize * scale;
+
     const offsetXAfterZoom = (mouseX - canvasRect.left) / scale - offsetX / scale;
     const offsetYAfterZoom = (mouseY - canvasRect.top) / scale - offsetY / scale;
 
@@ -257,8 +250,6 @@ function handleScroll(event) {
     const maxOffsetY = canvas.height - gridSize * cellSize * scale;
     offsetX = Math.min(0, Math.max(maxOffsetX, offsetX));
     offsetY = Math.min(0, Math.max(maxOffsetY, offsetY));
-
-//    drawGrid();
 }
 
 function setCellComponent(x, y, component) {
@@ -289,7 +280,8 @@ function handleMouseDown(event) {
         const cell = matrix[x][y];
 
         // Check if starting to draw a conveyor
-        if (x >= 0 
+        if (drawMode == DrawModeType.CONVEYER
+            &&x >= 0 
             && x < gridSize 
             && y >= 0 
             && y < gridSize 
@@ -301,12 +293,11 @@ function handleMouseDown(event) {
 
         // Check if placing an extractor
         if (drawMode === DrawModeType.EXTRACTOR) {
-            if (cell && cell.Type === CellType.NUMBER && target.Level >= cell.Number) {
+            if (cell && cell.Type === CellType.NUMBER && target.level >= cell.Number) {
                 if (hoverX >= 0 && hoverY >= 0) {
                     let extractor = new Extractor(ctx, cell.Number, hoverX, hoverY);
                     extractors.push(extractor);
                     setCellComponent(hoverX, hoverY, extractor);
-//                    drawGrid();
                 }
             }
         }
@@ -340,7 +331,6 @@ function handleMouseMove(event) {
             offsetY = maxOffsetY;
         }
 
-//        drawGrid();
     } else {
         const mouseX = event.clientX;
         const mouseY = event.clientY;
@@ -359,27 +349,12 @@ function handleMouseMove(event) {
             hoverY = -1;
         }
 
-//        drawGrid();
-
-        const scaledCellSize = cellSize * scale;
-
         if (drawMode === DrawModeType.CONVEYER) {
             if ((hoverX-1==conveyorStartX && hoverY==conveyorStartY) || (hoverX+1==conveyorStartX && hoverY==conveyorStartY)) {
                 conveyerDrawStartDirection = DirectionType.HORIZONTAL;
             } else if ((hoverX==conveyorStartX && hoverY-1==conveyorStartY) || (hoverX==conveyorStartX && hoverY+1==conveyorStartY)) {
                 conveyerDrawStartDirection = DirectionType.VERTICAL;
             }
-            if (hoverX >= 0 && hoverY >= 0 && hoverX < gridSize && hoverY < gridSize) {
-                ctx.fillStyle = 'rgba(0, 255, 0, 0.25)';
-                const drawX = hoverX * scaledCellSize + offsetX;
-                const drawY = hoverY * scaledCellSize + offsetY;
-                ctx.fillRect(drawX, drawY, scaledCellSize, scaledCellSize);
-            }
-        } else if (drawMode === DrawModeType.EXTRACTOR) {
-            ctx.fillStyle = 'rgba(255, 0, 0, 0.25)';
-            const drawX = (hoverX - 1) * scaledCellSize + offsetX;
-            const drawY = (hoverY - 1) * scaledCellSize + offsetY;
-            ctx.fillRect(drawX, drawY, scaledCellSize * 3, scaledCellSize * 3);
         }
     }
 }
@@ -415,7 +390,7 @@ function getConveyerLineCellPoints(x, y) {
             if (cell.Type === CellType.EMPTY) {
                 inEmptycell = true;
                 if (cellPoints.length === 0) {
-                    cellPoints.push({ x: i, y: conveyorStartY });
+                    cellPoints.push({ x: i-stepX, y: conveyorStartY });
                 }
             } else if (cell.Type != CellType.EMPTY && inEmptycell) {
                 cellPoints.push({ x: i + stepX, y: conveyorStartY });
@@ -434,7 +409,7 @@ function getConveyerLineCellPoints(x, y) {
                     cellPoints.push({ x: endX, y: j });
                 }
             } else if (cell.Type != CellType.EMPTY && inEmptycell) {
-                cellPoints.push({ x: endX, y: j + stepY });
+                cellPoints.push({ x: endX, y: j });
                 return cellPoints;
             }
         }
@@ -447,7 +422,7 @@ function getConveyerLineCellPoints(x, y) {
             if (cell.Type === CellType.EMPTY) {
                 inEmptycell = true;
                 if (cellPoints.length === 0) {
-                    cellPoints.push({ x: conveyorStartX, y: j });
+                    cellPoints.push({ x: conveyorStartX, y: j-stepY });
                 }
             } else if (cell.Type != CellType.EMPTY && inEmptycell) {
                 cellPoints.push({ x: conveyorStartX, y: j + stepY });
@@ -466,7 +441,7 @@ function getConveyerLineCellPoints(x, y) {
                     cellPoints.push({ x: i, y: endY });
                 }
             } else if (cell.Type != CellType.EMPTY && inEmptycell) {
-                cellPoints.push({ x: i + stepX, y: endY });
+                cellPoints.push({ x: i, y: endY });
                 return cellPoints;
             }
         }
@@ -481,12 +456,10 @@ function convertHorizontalConveyerLine(start, end) {
     const step = (end.x > start.x) ? 1 : -1;
     while (i !== end.x) {
         var cell = matrix[i][start.y];
-        //cell.BackgroundColor = 'black';
         cell.Type = CellType.CONVEYER;
         i += step;
     }
     cell = matrix[end.x][start.y];
-    //cell.BackgroundColor = 'black';
     cell.Type = CellType.CONVEYER;
 }
 
@@ -495,12 +468,10 @@ function convertVerticalConveyerLine(start, end) {
     const step = (end.y > start.y) ? 1 : -1;
     while (j !== end.y) {
         var cell = matrix[start.x][j];
-        cell.BackgroundColor = 'black';
         cell.Type = CellType.CONVEYER;
         j += step;
     }
     cell = matrix[start.x][end.y];
-    cell.BackgroundColor = 'black';
     cell.Type = CellType.CONVEYER;
 }
 
@@ -532,10 +503,12 @@ function convertToConveyer(mouseX, mouseY) {
     const x = Math.floor((mouseX - canvasRect.left - offsetX) / (cellSize * scale));
     const y = Math.floor((mouseY - canvasRect.top - offsetY) / (cellSize * scale));
 
-    var startComponent = matrix[conveyorStartX][conveyorStartY].Component;
-    var endComponent = matrix[x][y].Component;
-
     let points = getConveyerLineCellPoints(x, y);
+    let pEnd = points[points.length - 1];
+
+    let startComponent = matrix[points[0].x][points[0].y].Component;
+    let endComponent = matrix[pEnd.x][pEnd.y].Component;
+
     convertConveyerLine(points, startComponent, endComponent);
 }
 
@@ -547,7 +520,6 @@ function handleMouseUp(event) {
         const mouseX = event.clientX;
         const mouseY = event.clientY;
         convertToConveyer(mouseX, mouseY);
-//        drawGrid();
     }
 }
 
@@ -585,22 +557,40 @@ canvas.addEventListener('contextmenu', event => event.preventDefault()); // Prev
 resizeCanvas();
 offsetX = canvas.width / 2 - (gridSize * cellSize * scale) / 2;
 offsetY = canvas.height / 2 - (gridSize * cellSize * scale) / 2;
-//drawGrid();
 
 function mainLoop(timestamp) {
     drawGrid(timestamp);
     beltGraph.draw(ctx, cellSize, scale, offsetX, offsetY, timestamp);
+    // Draw the target in the center of the grid
+    const centerX = (gridSize / 2) * scaledCellSize + offsetX;
+    const centerY = (gridSize / 2) * scaledCellSize + offsetY;
+    target.draw(centerX, centerY, scaledCellSize);
+
+    // Draw extractors
+    for (let i = 0; i < extractors.length; i++) {
+        const extractor = extractors[i];
+        const posX = extractor.tileX * scaledCellSize + offsetX + scaledCellSize * 0.5;
+        const posY = extractor.tileY * scaledCellSize + offsetY + scaledCellSize * 0.5;
+        extractor.draw(posX, posY, scaledCellSize);
+    }
+
+    if (drawMode == DrawModeType.CONVEYER && hoverX >= 0 && hoverY >= 0 && hoverX < gridSize && hoverY < gridSize) {
+        ctx.fillStyle = 'rgba(0, 255, 0, 0.25)';
+        const drawX = hoverX * scaledCellSize + offsetX;
+        const drawY = hoverY * scaledCellSize + offsetY;
+        ctx.fillRect(drawX, drawY, scaledCellSize, scaledCellSize);
+    } else if (drawMode == DrawModeType.EXTRACTOR && hoverX >= 1 && hoverY >= 1 && hoverX < gridSize-1 && hoverY < gridSize-1) {
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.25)';
+        const drawX = (hoverX - 1) * scaledCellSize + offsetX;
+        const drawY = (hoverY - 1) * scaledCellSize + offsetY;
+        ctx.fillRect(drawX, drawY, scaledCellSize * 3, scaledCellSize * 3);
+    }
     requestAnimationFrame(mainLoop);
 }
 
 // Game engine background worker that runs independant of frame rate / screen update
 function tick() {
-    // loop trough extractors
     beltGraph.tick();
-
-    for (let extractor of extractors) {
-        extractor.outputNumbers();
-    }
 }
 
 mainLoop();

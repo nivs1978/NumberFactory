@@ -19,9 +19,32 @@
 class Target {
     constructor(ctx) {
         this.ctx = ctx;
-        this.Level = 1;
-        this.Count = 0;
-        this.TargetCount = 10;
+        this.level = 0;
+        this.numberCounts = [];
+        this.currentLevelRequirement = null;
+        this.levelUp();
+    }
+
+    levelUp() {
+        this.level++;
+        this.currentLevelRequirement = levelRequirements.find(l => l.number === this.level)
+        this.count = 0;
+    }
+
+    addNumber(number) {
+        if (this.numberCounts[number] === undefined) {
+            this.numberCounts[number] = 1;
+        } else {
+            this.numberCounts[number]++;
+        }
+        var count = this.numberCounts[this.currentLevelRequirement.number];
+        if (count === undefined) {
+            count = 0;
+        }
+        var targetCount = this.currentLevelRequirement.requiredCount;
+        if (count == targetCount) {
+            this.levelUp();
+        }
     }
 
     draw(x, y, zoom) {
@@ -44,12 +67,18 @@ class Target {
         this.ctx.fillStyle = 'white';
         this.ctx.font = Math.round(zoom*2) + 'px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText(this.Level, x, y - size / 5);
+        this.ctx.fillText(this.level, x, y - size / 5);
 
         // draw count and target count as x/y in the center
         this.ctx.fillStyle = 'lightgreen';
         this.ctx.font = Math.round(zoom) + 'px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText(this.Count + '/' + this.TargetCount, x, y);
+        this.currentLevelRequirement.number
+        var count = this.numberCounts[this.currentLevelRequirement.number];
+        if (count === undefined) {
+            count = 0;
+        }
+        var targetCount = this.currentLevelRequirement.requiredCount;
+        this.ctx.fillText(count + '/' + targetCount, x, y);
     }
 }

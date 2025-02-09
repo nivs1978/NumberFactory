@@ -45,13 +45,13 @@ class BeltGraph {
 
     draw(ctx, cellSize, scale, offsetX, offsetY, timestamp) {
         // Search for belt segments where the next property is of type Target
-        const targetSegments = this.beltSegments.filter(segment => segment.next instanceof Target);
+        let targetSegments = this.beltSegments.filter(segment => segment.next instanceof Target);
         // next we find all belt segments that end in nothing
         const endSegments = this.beltSegments.filter(segment => !segment.next);
         
-        targetSegments.concat(endSegments);
+        targetSegments = targetSegments.concat(endSegments);
 
-        const conveyerAnimationStep = Math.round(timestamp / beltAnimationSpeed) % beltAnimationSteps;
+        const conveyerAnimationStep = Math.round((timestamp * beltSpeed * 2.75) / tickDelay) % beltAnimationSteps;
         const cellSizeScale = cellSize * scale;
         const halfCellSizeScaled = cellSizeScale / 2;
         const beltLineWidth = cellSize * beltWidthPercentage * scale;
@@ -75,27 +75,13 @@ class BeltGraph {
 
                 // Extend the lines by half a cell size
                 if (direction === DirectionType.VERTICAL) { // Vertical line
-                    if (i === 0 && segment.prev) {
-                        startY += dy * halfCellSizeScaled; // if first segment is connected, draw the line to the edge of the cell
-                    } else {
-                        startY -= ctx.lineWidth / 2 * dy; // Else it's part of a bend and needs to be drawn at the edge of that belt
-                    }
-                    if (i === segment.points.length - 2 && segment.next) {
-                        endY += dy * halfCellSizeScaled; // if last segment is connected, draw the line to the edge of the cell
-                    }
+                    startY -= ctx.lineWidth / 2 * dy;
                     ctx.beginPath();
                     ctx.moveTo(startX, startY);
                     ctx.lineTo(endX, endY);
                     ctx.stroke();
                 } else { // Horizontal line
-                    if (i === 0 && segment.prev) {
-                        startX -= dx * halfCellSizeScaled; // if first segment is connected, draw the line to the edge of the cell
-                    } else {
-                        startX -= ctx.lineWidth / 2 * dx; // Else it's part of a bend and needs to be drawn at the edge of that belt
-                    }
-                    if (i === segment.points.length - 2 && segment.next) {
-                        startX += dx * halfCellSizeScaled; // if last segment is connected, draw the line to the edge of the cell
-                    }
+                    startX -= ctx.lineWidth / 2 * dx; // Else it's part of a bend and needs to be drawn at the edge of that belt
                     ctx.beginPath();
                     ctx.moveTo(startX, startY);
                     ctx.lineTo(endX, endY);

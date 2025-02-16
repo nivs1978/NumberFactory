@@ -24,6 +24,8 @@
         <link rel="stylesheet" href="style.css">
         <script src="enums.js"></script>
         <script src="constants.js"></script>
+        <script src="cell.js"></script>
+        <script src="junction.js"></script>
         <script src="beltitem.js"></script>
         <script src="beltsegment.js"></script>
         <script src="beltgraph.js"></script>
@@ -34,17 +36,43 @@
     </head>
     <body>
         <canvas id="bitFactory"></canvas>
+        <div id="menu">
+            <div id="menuButton" class="menuicon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+                    <rect x="30" y="40" width="140" height="16" fill="white" />
+                    <rect x="30" y="90" width="140" height="16" fill="white" />
+                    <rect x="30" y="140" width="140" height="16" fill="white" />
+                </svg>
+            </div>
+            <div id="statisticsButton" class="menuicon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+                    <style>
+                        .statisticsText {
+                        font: 50px sans-serif;
+                        fill: white;
+                        }
+                    </style>                
+                    <text x="5" y="70" class="statisticsText">123</text>
+                </svg>
+            </div>
+            <div id="upgradesButton" class="menuicon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+                    <style>
+                        .upgradeText {
+                        font: 90px sans-serif;
+                        fill: white;
+                        }
+                    </style>                
+                    <text x="25" y="80" class="upgradeText">⇪</text>
+                </svg>
+            </div>
+        </div>
         <div id="toolbar">
             <div class="button" id="beltButton" data-number="1">
                 <div class="icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 200 200">
-                        <!-- Black rectangle in the center -->
                         <rect x="0" y="50" width="200" height="100" fill="black" />
-                      
-                        <!-- First gold triangle -->
                         <polygon points="20,80 80,100 20,120" fill="goldenrod" />
-                      
-                        <!-- Second gold triangle -->
                         <polygon points="120,80 180,100 120,120" fill="goldenrod" />
                       </svg>                </div>
                 <div class="label">Belt</div>

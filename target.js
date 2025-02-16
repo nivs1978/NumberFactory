@@ -37,11 +37,11 @@ class Target {
         } else {
             this.numberCounts[number]++;
         }
-        var count = this.numberCounts[this.currentLevelRequirement.number];
+        let count = this.numberCounts[this.currentLevelRequirement.number];
         if (count === undefined) {
             count = 0;
         }
-        var targetCount = this.currentLevelRequirement.requiredCount;
+        let targetCount = this.currentLevelRequirement.requiredCount;
         if (count == targetCount) {
             this.levelUp();
         }
@@ -74,11 +74,11 @@ class Target {
         this.ctx.font = Math.round(zoom) + 'px Arial';
         this.ctx.textAlign = 'center';
         this.currentLevelRequirement.number
-        var count = this.numberCounts[this.currentLevelRequirement.number];
+        let count = this.numberCounts[this.currentLevelRequirement.number];
         if (count === undefined) {
             count = 0;
         }
-        var targetCount = this.currentLevelRequirement.requiredCount;
+        let targetCount = this.currentLevelRequirement.requiredCount;
         this.ctx.fillText(count + '/' + targetCount, x, y);
     }
 }

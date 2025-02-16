@@ -17,8 +17,6 @@
 */
 
 //todo list:
-// Implement extending existing belt. This should just add more points to the existing belt. If the extensions hit a target, set this in next.
-// Implement splitting from an existing belt, at a split, every other number should slide to the new segment and others go to the old segment. If there is room.
 // Implement merging to an existing belt. The existing belt should be split at the intersection, so the original belt is shortened and two new belt from the merge cell to the end of the belt should be created. Set the proper prev and next.
 // Implement demolish functionality (draw rectangle to erase everything within)
 // Implement 
@@ -45,17 +43,6 @@ let conveyerDrawStartDirection = DirectionType.HORIZONTAL;
 
 const beltGraph = new BeltGraph();
 
-class Cell {
-    constructor(backgroundColor) {
-        this.BackgroundColor = backgroundColor;
-        this.HasExtractor = false;
-        this.Number = 0;
-        this.Type = CellType.EMPTY;
-        this.Component = null;
-        this.beltNode = null;
-    }
-}
-
 const matrix = Array.from({ length: gridSize }, () => Array.from({ length: gridSize }, () => new Cell(
     backgroundColors[Math.floor(Math.random() * backgroundColors.length)]
 )));
@@ -67,7 +54,7 @@ function getValidPosition() {
     while (notValid) {
         x = Math.floor(Math.random() * gridSize);
         y = Math.floor(Math.random() * gridSize);
-        var distCenter = Math.sqrt((x - 512) * (x - 512) + (y - 512) * (y - 512));
+        let distCenter = Math.sqrt((x - 512) * (x - 512) + (y - 512) * (y - 512));
         if (distCenter > 20) {
             notValid = false;
             for (let i = -10; i <= 10; i++) {
@@ -89,7 +76,7 @@ function getValidPosition() {
 // mark 6x6 center as the target
 for (let x = 509; x <= 514; x++) {
     for (let y = 509; y <= 514; y++) {
-        var cell = matrix[x][y];
+        let cell = matrix[x][y];
         cell.Type = CellType.TARGET;
         cell.Component = target;
     }
@@ -99,7 +86,7 @@ function enableNumber(x, y, number) {
     for (let i = -1; i <= 1; i++) {
         for (let j = -1; j <= 1; j++) {
             if (x + i >= 0 && x + i < gridSize && y + j >= 0 && y + j < gridSize) {
-                var cell = matrix[x + i][y + j];
+                let cell = matrix[x + i][y + j];
                 cell.BackgroundColor = "#1C4F77";
                 cell.Number = number;
                 if (i == 0 && j == 0) {
@@ -113,41 +100,43 @@ function enableNumber(x, y, number) {
 }
 
 // Insert 1024 random numbers between 1 and 9
-
+/*
 for (let i = 0; i < 1024; i++) {
-    var pos = getValidPosition();
+    let pos = getValidPosition();
     let number = Math.floor(Math.random() * 9) + 1;
     if (number == 1) {
         enableNumber(pos.x, pos.y, 1);
     } else
     {
-        var cell = matrix[pos.x][pos.y];
+        let cell = matrix[pos.x][pos.y];
         cell.Number = number;
         cell.Type = CellType.NUMBER;
     }
 }
-    
-/*
+*/  
+
 // Initial test data
 function initializeTestData() {
     enableNumber(520, 500, 1);
     let extractor = new Extractor(ctx, 1, 520, 500);
     extractors.push(extractor);
     setCellComponent(520, 500, extractor);
-   /* let points = [{ x: 519, y: 500, }, { x: 513, y: 500, }, { x: 513, y: 508 }, {x: 490, y: 508}, {x: 490, y: 490}, {x: 510, y: 490}, {x: 510, y: 509}];
-    var segment = convertConveyerLine(points, extractor, target);
-    segment.addItem(new BeltItem(1));
-    let points2 = [{ x: 519, y: 501}, {x:519, y: 510}, {x: 510, y: 510}];
-    conveyerDrawStartDirection = DirectionType.VERTICAL;
-    var segment2= convertConveyerLine(points2, extractor, target);
-    segment2.addItem(new BeltItem(2));*/
-//}
+    drawMode = DrawModeType.CONVEYER;
+    let points = [{ x: 519, y: 499, }, { x: 511, y: 499, }, { x: 511, y: 509 }];
+    createConveyer(points);
+    let points2 = [{ x: 511, y: 500}, {x:512, y: 500}, {x: 512, y: 509}];
+    createConveyer(points2);
+    let points3 = [{ x: 512, y: 501}, {x:513, y: 501}, {x: 513, y: 509}];
+    createConveyer(points3);
+    let points4 = [{ x: 516, y: 499}, {x:516, y: 504}, {x: 513, y: 504}];
+    createConveyer(points4);
+}
 
-//initializeTestData();
+initializeTestData();
 
 function drawSuggestedConveyer()
 {
-    ctx.strokeStyle = 'black';
+    ctx.strokeStyle = '#00ff0044';
     ctx.lineWidth = 8 * scale;
     ctx.beginPath();
     ctx.moveTo(conveyorStartX * scaledCellSize + offsetX + scaledCellSize / 2, conveyorStartY * scaledCellSize + offsetY + scaledCellSize / 2);
@@ -176,7 +165,7 @@ function drawGrid(timestamp) {
             const drawX = x * scaledCellSize + offsetX;
             const drawY = y * scaledCellSize + offsetY;
             if (drawX + scaledCellSize > 0 && drawX < canvas.width && drawY + scaledCellSize > 0 && drawY < canvas.height) {
-                var cell = matrix[x][y];
+                let cell = matrix[x][y];
                 ctx.fillStyle = cell.BackgroundColor;
                 ctx.fillRect(drawX, drawY, scaledCellSize, scaledCellSize);
                 if (cell.Type == CellType.NUMBER) {
@@ -255,7 +244,7 @@ function handleScroll(event) {
 function setCellComponent(x, y, component) {
     for (let i = -1; i <= 1; i++) {
         for (let j = -1; j <= 1; j++) {
-            var cell = matrix[x + i][y + j];
+            let cell = matrix[x + i][y + j];
             cell.Component = component;
             if (component instanceof Extractor) {
                 cell.HasExtractor = true;
@@ -386,7 +375,7 @@ function getConveyerLineCellPoints(x, y) {
         const endX = x;
         const stepX = conveyorStartX < x ? 1 : -1;
         for (let i = conveyorStartX; i !== endX + stepX; i += stepX) {
-            var cell = matrix[i][conveyorStartY];
+            let cell = matrix[i][conveyorStartY];
             if (cell.Type === CellType.EMPTY) {
                 inEmptycell = true;
                 if (cellPoints.length === 0) {
@@ -395,9 +384,15 @@ function getConveyerLineCellPoints(x, y) {
             } else if (cell.Type != CellType.EMPTY && inEmptycell) {
                 cellPoints.push({ x: i + stepX, y: conveyorStartY });
                 return cellPoints;
+            } else if (cell.Type === CellType.CONVEYER && i===conveyorStartX) { // we start in a conveyer cell
+                cellPoints.push({ x:i,  y: conveyorStartY });
             }
         }
         cellPoints.push({ x: endX, y: conveyorStartY });
+
+        if (dy == 0) {
+            return cellPoints;
+        }
 
         const endY = y;
         const stepY = conveyorStartY < y ? 1 : -1;
@@ -418,7 +413,7 @@ function getConveyerLineCellPoints(x, y) {
         const endY = y;
         const stepY = conveyorStartY < y ? 1 : -1;
         for (let j = conveyorStartY; j !== endY + stepY; j += stepY) {
-            var cell = matrix[conveyorStartX][j];
+            let cell = matrix[conveyorStartX][j];
             if (cell.Type === CellType.EMPTY) {
                 inEmptycell = true;
                 if (cellPoints.length === 0) {
@@ -427,9 +422,15 @@ function getConveyerLineCellPoints(x, y) {
             } else if (cell.Type != CellType.EMPTY && inEmptycell) {
                 cellPoints.push({ x: conveyorStartX, y: j + stepY });
                 return cellPoints;
+            } else if (cell.Type === CellType.CONVEYER && j===conveyorStartY) { // we start in a conveyer cell
+                cellPoints.push({ x: conveyorStartX, y: j });
             }
         }
         cellPoints.push({ x: conveyorStartX, y: endY });
+
+        if (dx == 0) {
+            return cellPoints;
+        }
 
         const endX = x;
         const stepX = conveyorStartX < x ? 1 : -1;
@@ -451,51 +452,79 @@ function getConveyerLineCellPoints(x, y) {
     return cellPoints;
 }
 
-function convertHorizontalConveyerLine(start, end) {
+function updateHorizontalCellsToConveyer(start, end, beltSegment) {
     let i = start.x;
     const step = (end.x > start.x) ? 1 : -1;
     while (i !== end.x) {
-        var cell = matrix[i][start.y];
-        cell.Type = CellType.CONVEYER;
+        let cell = matrix[i][start.y];
+        if (cell.Type === CellType.EMPTY || cell.Type === CellType.CONVEYER) {
+            cell.Type = CellType.CONVEYER;
+            cell.Component = beltSegment;
+        }
         i += step;
     }
     cell = matrix[end.x][start.y];
-    cell.Type = CellType.CONVEYER;
+    if (cell.Type === CellType.EMPTY || cell.Type === CellType.CONVEYER) {
+        cell.Type = CellType.CONVEYER;
+        cell.Component = beltSegment;
+    }
 }
 
-function convertVerticalConveyerLine(start, end) {
+function updateVerticalCellsToConveyer(start, end, beltSegment) {
     let j = start.y;
     const step = (end.y > start.y) ? 1 : -1;
     while (j !== end.y) {
-        var cell = matrix[start.x][j];
-        cell.Type = CellType.CONVEYER;
+        let cell = matrix[start.x][j];
+        if (cell.Type === CellType.EMPTY) {
+            cell.Type = CellType.CONVEYER;
+            cell.Component = beltSegment;
+        }
         j += step;
     }
     cell = matrix[start.x][end.y];
-    cell.Type = CellType.CONVEYER;
+    if (cell.Type === CellType.EMPTY) {
+        cell.Type = CellType.CONVEYER;
+        cell.Component = beltSegment;
+    }
 }
 
-function convertConveyerLine(points, startComponent, endComponent)
+function UpdateCellsToConveyer(beltSegment)
 {
+    var points = beltSegment.points;
     if (points.length === 3) {
-        if (conveyerDrawStartDirection === DirectionType.HORIZONTAL) {
-            convertHorizontalConveyerLine(points[0], points[1]);
-            convertVerticalConveyerLine(points[1], points[2]);
+        if (points[0].x === points[1].x) {
+            updateVerticalCellsToConveyer(points[0], points[1], beltSegment);
+            updateHorizontalCellsToConveyer(points[1], points[2], beltSegment);
         } else {
-            convertVerticalConveyerLine(points[0], points[1]);
-            convertHorizontalConveyerLine(points[1], points[2]);
+            updateHorizontalCellsToConveyer(points[0], points[1], beltSegment);
+            updateVerticalCellsToConveyer(points[1], points[2], beltSegment);
         }
     } else if (points.length === 2) {
         if (points[0].x === points[1].x) {
-            convertVerticalConveyerLine(points[0], points[1]);
+            updateVerticalCellsToConveyer(points[0], points[1], beltSegment);
         } else {
-            convertHorizontalConveyerLine(points[0], points[1]);
+            updateHorizontalCellsToConveyer(points[0], points[1], beltSegment);
         }
     }
-    // Add the conveyer to the belt graph
-    var segment = beltGraph.addBelt(points, startComponent, endComponent);
-    startComponent.addBelt(segment);
-    return segment;
+}
+
+function createConveyer(points) {
+    let startComponent = matrix[points[0].x][points[0].y].Component;
+    let endComponent = matrix[points[points.length - 1].x][points[points.length - 1].y].Component;
+
+    if (endComponent == null || !(endComponent instanceof Extractor)) {
+        let result = beltGraph.addBelt(points, startComponent, endComponent);
+        if (result.beltSegments) {
+            for (let beltSegment of result.beltSegments) {
+                UpdateCellsToConveyer(beltSegment);
+            }
+        }
+        if (result.junctions) {
+            for (let junction of result.junctions) {
+                matrix[junction.x][junction.y].Component = junction;
+            }
+        }
+    }    
 }
 
 function convertToConveyer(mouseX, mouseY) {
@@ -504,12 +533,8 @@ function convertToConveyer(mouseX, mouseY) {
     const y = Math.floor((mouseY - canvasRect.top - offsetY) / (cellSize * scale));
 
     let points = getConveyerLineCellPoints(x, y);
-    let pEnd = points[points.length - 1];
 
-    let startComponent = matrix[points[0].x][points[0].y].Component;
-    let endComponent = matrix[pEnd.x][pEnd.y].Component;
-
-    convertConveyerLine(points, startComponent, endComponent);
+    createConveyer(points);
 }
 
 function handleMouseUp(event) {
@@ -543,6 +568,9 @@ function initializeButtons() {
     enableButton('demolishButton', () => {
         drawMode = DrawModeType.DEMOLISHER;
     });
+    statisticsButton.addEventListener('click', () => {
+        
+    });
 }
 
 document.addEventListener('DOMContentLoaded', initializeButtons);
@@ -552,7 +580,7 @@ canvas.addEventListener('wheel', handleScroll);
 canvas.addEventListener('mousedown', handleMouseDown);
 canvas.addEventListener('mousemove', handleMouseMove);
 canvas.addEventListener('mouseup', handleMouseUp);
-canvas.addEventListener('contextmenu', event => event.preventDefault()); // Prevent context menu on right click
+canvas.addEventListener('contextmenu', event => event.preventDefault());
 
 resizeCanvas();
 offsetX = canvas.width / 2 - (gridSize * cellSize * scale) / 2;
@@ -590,7 +618,7 @@ function mainLoop(timestamp) {
 
 // Game engine background worker that runs independant of frame rate / screen update
 function tick() {
-    beltGraph.tick();
+   beltGraph.tick();
 }
 
 mainLoop();

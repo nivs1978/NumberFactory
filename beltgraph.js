@@ -36,21 +36,88 @@ class BeltGraph {
         }
     }
 
+    /// <summary>
+    /// Add a belt segment to the graph
+    /// </summary>
+    /// <param name="points">The points that make up the belt segment</param>
+    /// <param name="prev">The component, belt or junction where the belt should start from</param>
+    /// <param name="next">The component, belt or junction where the belt is ending</param>
     addBelt(points, prev, next) {
-        const segment = new BeltSegment(points, prev, next);
-        // Add the segment to your belt management system
-        this.beltSegments.push(segment);
-        return segment;
+        var result ={ beltSegments: [], junctions: [] };
+        let newSegment = null;
+        if (prev && prev instanceof BeltSegment) {
+            // Check if the new belt segment starts where the previous one ended
+            if (points[0].x === prev.points[prev.points.length - 1].x && points[0].y === prev.points[prev.points.length - 1].y) {
+                prev.extendBeltSegment(points, next);
+                result.beltSegments.push(prev);        
+            } else // We are splitting a new belt from somewhere in between the start and end
+            {
+                let junction = new Junction(points[0].x, points[0].y); // Create a junction for the split
+                let cutSegment = prev.cutBeltSegmentAt(points[0].x, points[0].y);
+                this.beltSegments.push(cutSegment);
+                prev.next = junction; // Connect the current belt to the junction
+                junction.addOutput(cutSegment);
+                cutSegment.prev = junction;                
+                newSegment = new BeltSegment(points, junction, next);
+                junction.addOutput(newSegment);
+                this.beltSegments.push(newSegment);
+                result.beltSegments.push(cutSegment);
+                result.beltSegments.push(newSegment);
+                result.junctions.push(junction);
+            }
+        }
+        if (next && next instanceof BeltSegment) { // merge belt into existing beltsegment
+            // Does belt segment end where the new belt segment starts?
+            if (points[points.length - 1].x === next.points[0].x && points[points.length - 1].y === next.points[0].y) {
+                prev.extendBeltSegment(points, next);
+                result.beltSegments.push(prev);        
+            } else // We are marging the new belt somewhere in between two points
+            {
+                let junction = new Junction(points[points.length - 1].x, points[points.length - 1].y); // Create a junction for the split
+                let cutSegment = next.cutBeltSegmentAt(points[points.length - 1].x, points[points.length - 1].y);
+                this.beltSegments.push(cutSegment);
+                next.next = junction; // Connect the current belt to the junction
+                junction.addOutput(cutSegment);
+                cutSegment.prev = junction;
+
+                if (newSegment == null) {
+                    newSegment = new BeltSegment(points, prev, junction);
+                    this.beltSegments.push(newSegment);
+                    result.beltSegments.push(newSegment);
+                } else {
+                    newSegment.next = junction;
+                }
+
+                if (prev instanceof Extractor) {
+                    prev.addBelt(newSegment);
+                }
+
+                result.beltSegments.push(cutSegment);
+                result.junctions.push(junction);
+            }
+        }
+        if (newSegment == null)
+        {
+            newSegment = new BeltSegment(points, prev, next);
+            if (prev!=null) {
+                if (prev instanceof Junction) {
+                    prev.addOutput(newSegment);
+                } else {
+                    prev.addBelt(newSegment);
+                }
+            }
+            if (next!=null) {
+                if (next instanceof Junction) {
+                    next.addOutput(newSegment);
+                }
+            }
+            this.beltSegments.push(newSegment);
+            result.beltSegments.push(newSegment);
+        }
+        return result;
     }
 
     draw(ctx, cellSize, scale, offsetX, offsetY, timestamp) {
-        // Search for belt segments where the next property is of type Target
-        let targetSegments = this.beltSegments.filter(segment => segment.next instanceof Target);
-        // next we find all belt segments that end in nothing
-        const endSegments = this.beltSegments.filter(segment => !segment.next);
-        
-        targetSegments = targetSegments.concat(endSegments);
-
         const conveyerAnimationStep = Math.round((timestamp * beltSpeed * 2.75) / tickDelay) % beltAnimationSteps;
         const cellSizeScale = cellSize * scale;
         const halfCellSizeScaled = cellSizeScale / 2;
@@ -59,7 +126,7 @@ class BeltGraph {
         const offsetoffsetYHalfCellSizeScaled = offsetY + halfCellSizeScaled;
 
         // Draw the belts
-        for (let segment of targetSegments) {
+        for (let segment of this.beltSegments) {
             for (let i = 0; i < segment.points.length - 1; i++) {
                 ctx.strokeStyle = 'black'; // Example color for target segments
                 ctx.lineWidth = beltLineWidth; // Make the line cover the tiles
@@ -91,7 +158,7 @@ class BeltGraph {
         }
 
         // Draw the triangles
-        for (let segment of targetSegments) {
+        for (let segment of this.beltSegments) {
             for (let i = 0; i < segment.points.length - 1; i++) {
                 let startX = segment.points[i].x * cellSizeScale + offsetoffsetXHalfCellSizeScaled;
                 let startY = segment.points[i].y * cellSizeScale + offsetoffsetYHalfCellSizeScaled;
@@ -126,7 +193,16 @@ class BeltGraph {
             }
         }
 
-        for (let segment of targetSegments) {
+        for (let segment of this.beltSegments) {
+            /*if (segment.prev instanceof Junction) {
+                let junction = segment.prev;
+                let x = junction.x * cellSizeScale + offsetoffsetXHalfCellSizeScaled;
+                let y = junction.y * cellSizeScale + offsetoffsetYHalfCellSizeScaled;
+                ctx.fillStyle = '#ffffff40';
+                ctx.beginPath();
+                ctx.rect(x - cellSizeScale /2, y - cellSizeScale / 2, cellSizeScale, cellSizeScale);
+                ctx.fill();
+            }*/
             // Loop through each item in belt segment and use its precomputed position
             for (let item of segment.items) {
                 let x = item.x * cellSizeScale + offsetoffsetXHalfCellSizeScaled;

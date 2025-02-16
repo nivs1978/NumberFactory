@@ -62,3 +62,11 @@ function roundRect(ctx, x, y, width, height, radius) {
     ctx.fillStyle = grad;
     ctx.fill();
   }
+
+  function getDirectionType(p1, p2) {
+    if (p1.x === p2.x) {
+      return DirectionType.VERTICAL;
+    } else if (p1.y === p2.y) {
+      return DirectionType.HORIZONTAL;
+    }
+  }

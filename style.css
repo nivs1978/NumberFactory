@@ -21,6 +21,30 @@ html, body {
     align-items: center;
     background-color: rgba(0, 0, 0, 0.5);
 }
+
+#menu {
+    position: absolute;
+    top:5px;
+    right: 5px;
+    background-color: #11558888;
+    width: 10vw;
+    padding: 1vh;
+}
+
+.menuicon {
+    width: 4vh;
+    height: 4vh;
+    border: 1px solid #00000088;
+    background: linear-gradient(135deg, rgba(42,142,187,1) 0%, rgba(35,102,139,1) 100%);
+    float: right;
+    margin-right: 0.5vh;
+    cursor: pointer;
+}
+
+.menuicon:hover {
+    background: linear-gradient(135deg, #77F6EE 0%, #58ABA7 100%);
+}
+
 .button {
     position: relative;
     width: 8vh;

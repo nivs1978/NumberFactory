@@ -23,7 +23,7 @@ class Extractor {
         this.tileX = tileX;
         this.tileY = tileY;
         this.belts = [];
-        this.beltsPerSecond = 2.0;
+        this.beltsPerSecond = 2.0 * numbersPerSecondFromExtractors;
         this.lastNumberTime = Date.now();
         this.lastBeltOutputIndex = -1;
         this.tickDelay= 1000.0 / this.beltsPerSecond;

@@ -21,7 +21,7 @@ const beltWidthPercentage = 0.6;
 const beltAnimationSteps = 50;
 const beltAnimationSpeed = 10;
 const beltSpeed = 2;
-const tickDelay = 50;
+const tickDelay = 40;
 const numbersPerSecondFromExtractors = 4;
 
 const levelRequirements = [

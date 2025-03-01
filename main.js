@@ -17,12 +17,17 @@
 */
 
 //todo list:
-// Implement merging to an existing belt. The existing belt should be split at the intersection, so the original belt is shortened and two new belt from the merge cell to the end of the belt should be created. Set the proper prev and next.
+// Fix belt merging into another belt where it over shoots to the belt after the first beltif two belts are running next to each other, but also if there is a space between them
+// Fix drawing belt inside/along exissting belt, cancel the belt if more than 1 cell is drawn on top of another belt not counting the end
 // Implement demolish functionality (draw rectangle to erase everything within)
-// Implement 
+// Implement level ups, where new functionality or numbers are unlocked
+// Implement upgrades like faster belts, extractors etc
+// Implement a way to save and load the game in local storage, perhpas using random seend for the numbers and saving belt graph+components and statistics
+
 
 const canvas = document.getElementById('bitFactory');
 const ctx = canvas.getContext('2d', { alpha: false });
+let conveyerAnimationStep = 0;
 
 const target = new Target(ctx);
 let extractors = [];
@@ -100,7 +105,7 @@ function enableNumber(x, y, number) {
 }
 
 // Insert 1024 random numbers between 1 and 9
-/*
+
 for (let i = 0; i < 1024; i++) {
     let pos = getValidPosition();
     let number = Math.floor(Math.random() * 9) + 1;
@@ -113,11 +118,12 @@ for (let i = 0; i < 1024; i++) {
         cell.Type = CellType.NUMBER;
     }
 }
-*/  
+  
 
 // Initial test data
 function initializeTestData() {
-    enableNumber(520, 500, 1);
+//  enable to create test data
+   enableNumber(520, 500, 1);
     let extractor = new Extractor(ctx, 1, 520, 500);
     extractors.push(extractor);
     setCellComponent(520, 500, extractor);
@@ -151,7 +157,7 @@ function drawSuggestedConveyer()
     ctx.lineWidth = 1;
 }
 
-function drawGrid(timestamp) {
+function drawGrid() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = '#2870A5';
     ctx.lineWidth = 1;
@@ -382,7 +388,7 @@ function getConveyerLineCellPoints(x, y) {
                     cellPoints.push({ x: i-stepX, y: conveyorStartY });
                 }
             } else if (cell.Type != CellType.EMPTY && inEmptycell) {
-                cellPoints.push({ x: i + stepX, y: conveyorStartY });
+                cellPoints.push({ x: i, y: conveyorStartY });
                 return cellPoints;
             } else if (cell.Type === CellType.CONVEYER && i===conveyorStartX) { // we start in a conveyer cell
                 cellPoints.push({ x:i,  y: conveyorStartY });
@@ -420,7 +426,7 @@ function getConveyerLineCellPoints(x, y) {
                     cellPoints.push({ x: conveyorStartX, y: j-stepY });
                 }
             } else if (cell.Type != CellType.EMPTY && inEmptycell) {
-                cellPoints.push({ x: conveyorStartX, y: j + stepY });
+                cellPoints.push({ x: conveyorStartX, y: j });
                 return cellPoints;
             } else if (cell.Type === CellType.CONVEYER && j===conveyorStartY) { // we start in a conveyer cell
                 cellPoints.push({ x: conveyorStartX, y: j });
@@ -475,35 +481,26 @@ function updateVerticalCellsToConveyer(start, end, beltSegment) {
     const step = (end.y > start.y) ? 1 : -1;
     while (j !== end.y) {
         let cell = matrix[start.x][j];
-        if (cell.Type === CellType.EMPTY) {
+        if (cell.Type === CellType.EMPTY || cell.Type === CellType.CONVEYER) {
             cell.Type = CellType.CONVEYER;
             cell.Component = beltSegment;
         }
         j += step;
     }
     cell = matrix[start.x][end.y];
-    if (cell.Type === CellType.EMPTY) {
+    if (cell.Type === CellType.EMPTY || cell.Type === CellType.CONVEYER) {
         cell.Type = CellType.CONVEYER;
         cell.Component = beltSegment;
     }
 }
 
-function UpdateCellsToConveyer(beltSegment)
-{
+function UpdateCellsToConveyer(beltSegment) {
     var points = beltSegment.points;
-    if (points.length === 3) {
-        if (points[0].x === points[1].x) {
-            updateVerticalCellsToConveyer(points[0], points[1], beltSegment);
-            updateHorizontalCellsToConveyer(points[1], points[2], beltSegment);
+    for (let i = 0; i < points.length - 1; i++) {
+        if (points[i].x === points[i + 1].x) {
+            updateVerticalCellsToConveyer(points[i], points[i + 1], beltSegment);
         } else {
-            updateHorizontalCellsToConveyer(points[0], points[1], beltSegment);
-            updateVerticalCellsToConveyer(points[1], points[2], beltSegment);
-        }
-    } else if (points.length === 2) {
-        if (points[0].x === points[1].x) {
-            updateVerticalCellsToConveyer(points[0], points[1], beltSegment);
-        } else {
-            updateHorizontalCellsToConveyer(points[0], points[1], beltSegment);
+            updateHorizontalCellsToConveyer(points[i], points[i + 1], beltSegment);
         }
     }
 }
@@ -512,19 +509,23 @@ function createConveyer(points) {
     let startComponent = matrix[points[0].x][points[0].y].Component;
     let endComponent = matrix[points[points.length - 1].x][points[points.length - 1].y].Component;
 
-    if (endComponent == null || !(endComponent instanceof Extractor)) {
-        let result = beltGraph.addBelt(points, startComponent, endComponent);
-        if (result.beltSegments) {
-            for (let beltSegment of result.beltSegments) {
-                UpdateCellsToConveyer(beltSegment);
+    if (startComponent !=endComponent) {
+        if (endComponent == null || !(endComponent instanceof Extractor)) {
+            let result = beltGraph.addBelt(points, startComponent, endComponent);
+            if (result.beltSegments) {
+                for (let beltSegment of result.beltSegments) {
+                    UpdateCellsToConveyer(beltSegment);
+                }
             }
-        }
-        if (result.junctions) {
-            for (let junction of result.junctions) {
-                matrix[junction.x][junction.y].Component = junction;
+            if (result.junctions) {
+                for (let junction of result.junctions) {
+                    matrix[junction.x][junction.y].Component = junction;
+                    matrix[junction.x][junction.y].Type = CellType.JUNCTION;
+                }
             }
-        }
-    }    
+            validateMatrixAndBeltGraph();
+        }    
+    }
 }
 
 function convertToConveyer(mouseX, mouseY) {
@@ -586,9 +587,9 @@ resizeCanvas();
 offsetX = canvas.width / 2 - (gridSize * cellSize * scale) / 2;
 offsetY = canvas.height / 2 - (gridSize * cellSize * scale) / 2;
 
-function mainLoop(timestamp) {
-    drawGrid(timestamp);
-    beltGraph.draw(ctx, cellSize, scale, offsetX, offsetY, timestamp);
+function mainLoop() {
+    drawGrid();
+    beltGraph.draw(ctx, cellSize, scale, offsetX, offsetY);
     // Draw the target in the center of the grid
     const centerX = (gridSize / 2) * scaledCellSize + offsetX;
     const centerY = (gridSize / 2) * scaledCellSize + offsetY;
@@ -614,6 +615,36 @@ function mainLoop(timestamp) {
         ctx.fillRect(drawX, drawY, scaledCellSize * 3, scaledCellSize * 3);
     }
     requestAnimationFrame(mainLoop);
+}
+
+//todo: remove this function in the final product, this is just to confirm that the belt graph and matrix are in sync
+function validateMatrixAndBeltGraph() {
+    var beltSegments = beltGraph.beltSegments;
+    for (let beltSegment of beltSegments) {
+        for (let i = 0; i < beltSegment.points.length - 1; i++) {
+            let start = beltSegment.points[i];
+            let end = beltSegment.points[i + 1];
+            if (start.x === end.x) {
+                // Vertical segment
+                let step = start.y < end.y ? 1 : -1;
+                for (let y = start.y; y !== end.y + step; y += step) {
+                    let cell = matrix[start.x][y];
+                    if (cell.Type != CellType.JUNCTION && cell.Type != CellType.NUMBERBUFFER && cell.Type != CellType.TARGET && cell.Component != beltSegment) {
+                        console.log('matrix(' + start.x + ',' + y + ') does not match belt segment !');
+                    }
+                }
+            } else {
+                // Horizontal segment
+                let step = start.x < end.x ? 1 : -1;
+                for (let x = start.x; x !== end.x + step; x += step) {
+                    let cell = matrix[x][start.y];
+                    if (cell.Type != CellType.JUNCTION && cell.Type != CellType.NUMBERBUFFER && cell.Type != CellType.TARGET && cell.Component != beltSegment) {
+                        console.log('matrix(' + x + ',' + start.y + ') does not match belt segment !');
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Game engine background worker that runs independant of frame rate / screen update

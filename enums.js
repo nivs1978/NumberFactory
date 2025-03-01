@@ -26,7 +26,8 @@ const CellType = Object.freeze({
     NUMBER: 1,
     NUMBERBUFFER: 2,
     CONVEYER: 3,
-    TARGET: 4
+    TARGET: 4,
+    JUNCTION: 5
 });
 
 const DrawModeType = Object.freeze({

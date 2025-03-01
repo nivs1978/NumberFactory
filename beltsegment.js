@@ -100,7 +100,7 @@ class BeltSegment {
             this.next = next;
         }
         // Recalculate the length of the belt
-        calculateLength();
+        this.calculateLength();
     }
 
     cutBeltSegmentAt(x, y) {
@@ -186,7 +186,10 @@ class BeltSegment {
         let cell = this.segmentCells[this.segmentCells.length - 1];
         if (!endofbelt) {
             cell = this.segmentCells[cellIndex];
-        }
+            if (!cell || !cell.x) {
+                console.log("No cell found");
+            }
+            }
         let x = cell.x;
         let y = cell.y;
         if (!endofbelt) {

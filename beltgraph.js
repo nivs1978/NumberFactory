@@ -22,6 +22,7 @@ class BeltGraph {
     }
 
     tick() {
+        conveyerAnimationStep = (conveyerAnimationStep + beltSpeed*2.05) % beltAnimationSteps
         for (let segment of this.beltSegments) {
             segment.moveBeltItems(segment);
         }
@@ -43,13 +44,14 @@ class BeltGraph {
     /// <param name="prev">The component, belt or junction where the belt should start from</param>
     /// <param name="next">The component, belt or junction where the belt is ending</param>
     addBelt(points, prev, next) {
-        var result ={ beltSegments: [], junctions: [] };
+        let result ={ beltSegments: [], junctions: [] };
         let newSegment = null;
         if (prev && prev instanceof BeltSegment) {
             // Check if the new belt segment starts where the previous one ended
             if (points[0].x === prev.points[prev.points.length - 1].x && points[0].y === prev.points[prev.points.length - 1].y) {
                 prev.extendBeltSegment(points, next);
-                result.beltSegments.push(prev);        
+                result.beltSegments.push(prev);
+                newSegment = prev;      
             } else // We are splitting a new belt from somewhere in between the start and end
             {
                 let junction = new Junction(points[0].x, points[0].y); // Create a junction for the split
@@ -60,6 +62,7 @@ class BeltGraph {
                 cutSegment.prev = junction;                
                 newSegment = new BeltSegment(points, junction, next);
                 junction.addOutput(newSegment);
+                result.beltSegments.push(prev);
                 this.beltSegments.push(newSegment);
                 result.beltSegments.push(cutSegment);
                 result.beltSegments.push(newSegment);
@@ -70,7 +73,8 @@ class BeltGraph {
             // Does belt segment end where the new belt segment starts?
             if (points[points.length - 1].x === next.points[0].x && points[points.length - 1].y === next.points[0].y) {
                 prev.extendBeltSegment(points, next);
-                result.beltSegments.push(prev);        
+                result.beltSegments.push(prev);   
+                newSegment = prev;     
             } else // We are marging the new belt somewhere in between two points
             {
                 let junction = new Junction(points[points.length - 1].x, points[points.length - 1].y); // Create a junction for the split
@@ -91,7 +95,7 @@ class BeltGraph {
                 if (prev instanceof Extractor) {
                     prev.addBelt(newSegment);
                 }
-
+                result.beltSegments.push(next);
                 result.beltSegments.push(cutSegment);
                 result.junctions.push(junction);
             }
@@ -117,8 +121,7 @@ class BeltGraph {
         return result;
     }
 
-    draw(ctx, cellSize, scale, offsetX, offsetY, timestamp) {
-        const conveyerAnimationStep = Math.round((timestamp * beltSpeed * 2.75) / tickDelay) % beltAnimationSteps;
+    draw(ctx, cellSize, scale, offsetX, offsetY) {
         const cellSizeScale = cellSize * scale;
         const halfCellSizeScaled = cellSizeScale / 2;
         const beltLineWidth = cellSize * beltWidthPercentage * scale;

@@ -19,6 +19,7 @@
 class BeltGraph {
     constructor() {
         this.beltSegments = [];
+        this.junctions = [];
     }
 
     tick() {
@@ -55,6 +56,7 @@ class BeltGraph {
             } else // We are splitting a new belt from somewhere in between the start and end
             {
                 let junction = new Junction(points[0].x, points[0].y); // Create a junction for the split
+                this.junctions.push(junction);
                 let cutSegment = prev.cutBeltSegmentAt(points[0].x, points[0].y);
                 this.beltSegments.push(cutSegment);
                 prev.next = junction; // Connect the current belt to the junction
@@ -78,6 +80,7 @@ class BeltGraph {
             } else // We are marging the new belt somewhere in between two points
             {
                 let junction = new Junction(points[points.length - 1].x, points[points.length - 1].y); // Create a junction for the split
+                this.junctions.push(junction);
                 let cutSegment = next.cutBeltSegmentAt(points[points.length - 1].x, points[points.length - 1].y);
                 this.beltSegments.push(cutSegment);
                 next.next = junction; // Connect the current belt to the junction
@@ -127,6 +130,7 @@ class BeltGraph {
         const beltLineWidth = cellSize * beltWidthPercentage * scale;
         const offsetoffsetXHalfCellSizeScaled = offsetX + halfCellSizeScaled;
         const offsetoffsetYHalfCellSizeScaled = offsetY + halfCellSizeScaled;
+        const beltEndOffset = cellSizeScale - (beltLineWidth * 2.0) // New offset for belt end
 
         // Draw the belts
         for (let segment of this.beltSegments) {
@@ -145,13 +149,21 @@ class BeltGraph {
 
                 // Extend the lines by half a cell size
                 if (direction === DirectionType.VERTICAL) { // Vertical line
-                    startY -= ctx.lineWidth / 2 * dy;
+                    if (i>0 && i<segment.points.length-1)
+                    {
+                        startY -= ctx.lineWidth / 2 * dy;
+                    }    
+                    //endY -= beltEndOffset * dy; // Adjust end position
                     ctx.beginPath();
                     ctx.moveTo(startX, startY);
                     ctx.lineTo(endX, endY);
                     ctx.stroke();
                 } else { // Horizontal line
-                    startX -= ctx.lineWidth / 2 * dx; // Else it's part of a bend and needs to be drawn at the edge of that belt
+                    if (i>0 && i<segment.points.length-1)
+                    {
+                        startX -= ctx.lineWidth / 2 * dx; // Else it's part of a bend and needs to be drawn at the edge of that belt
+                    }
+                    //endX -= beltEndOffset * dx; // Adjust end position
                     ctx.beginPath();
                     ctx.moveTo(startX, startY);
                     ctx.lineTo(endX, endY);
@@ -195,17 +207,8 @@ class BeltGraph {
                 }
             }
         }
-
+        
         for (let segment of this.beltSegments) {
-            /*if (segment.prev instanceof Junction) {
-                let junction = segment.prev;
-                let x = junction.x * cellSizeScale + offsetoffsetXHalfCellSizeScaled;
-                let y = junction.y * cellSizeScale + offsetoffsetYHalfCellSizeScaled;
-                ctx.fillStyle = '#ffffff40';
-                ctx.beginPath();
-                ctx.rect(x - cellSizeScale /2, y - cellSizeScale / 2, cellSizeScale, cellSizeScale);
-                ctx.fill();
-            }*/
             // Loop through each item in belt segment and use its precomputed position
             for (let item of segment.items) {
                 let x = item.x * cellSizeScale + offsetoffsetXHalfCellSizeScaled;

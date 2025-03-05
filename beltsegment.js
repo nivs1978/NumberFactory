@@ -65,13 +65,10 @@ class BeltSegment {
 
     getOverflowItems() {
         let overflown = [];
-        for (let i = this.items.length-1;i>=0;i--) {
-            let item = this.items[i];
-            if (item.distance >= this.length) {
-                item.distance -= this.length;
-                overflown.push(item);
-                this.items.splice(i, 1);
-            }
+        while (this.items.length > 0 && this.items[0].distance >= this.length) {
+            let item = this.items.shift();
+            item.distance -= this.length;
+            overflown.push(item);
         }
         return overflown;
     }
@@ -145,7 +142,7 @@ class BeltSegment {
     }
 
     moveBeltItems() {
-        if (this.items.length > 0 && this.items[0].distance >= this.length-1) {
+        if (this.items.length > 0 && this.items[0].distance >= this.length) {
             if (this.next instanceof Target)
             {
                 let item = this.items.shift();
@@ -165,22 +162,26 @@ class BeltSegment {
             }
         }
 
-        for (let i = this.items.length-1;i>=0;i--) {
+        for (let i = 0; i < this.items.length; i++) {
             let item = this.items[i];
-            let canMove = item.distance < this.length-1;
+            let canMove = item.distance < this.length;
             if (canMove && i>0) {
                 canMove = this.items[i-1].distance - item.distance >= 1;
             }
             if (canMove) {
                 item.distance += tickDelay*beltSpeed/1000;
-                this.updateItemPosition(item);                
+                if (item.distance > this.length) {
+                    item.distance = this.length;
+                } else if (i > 0 && this.items[i-1].distance - item.distance < 1) {
+                    item.distance = this.items[i-1].distance - 1;
+                }
+                this.updateItemPosition(item);
             }
         }
-        // check if item at position 0 is at end of belt and transfer it to next belt, target or component
     }
  
     updateItemPosition(item) {
-        const position = item.distance / this.length;
+        const position = item.distance / this.segmentCells.length;
         const cellIndex = Math.floor(position * this.segmentCells.length);
         const endofbelt = cellIndex >= this.segmentCells.length - 1;
         let cell = this.segmentCells[this.segmentCells.length - 1];
@@ -189,19 +190,19 @@ class BeltSegment {
             if (!cell || !cell.x) {
                 console.log("No cell found");
             }
-            }
+        }
         let x = cell.x;
         let y = cell.y;
         if (!endofbelt) {
             x += cell.dx * (position * this.segmentCells.length - cellIndex);
             y += cell.dy * (position * this.segmentCells.length - cellIndex);
         }
-        item.x=x;
-        item.y=y;
+        item.x = x;
+        item.y = y;
     }
 
     hasRoomForItem() {
-        return this.items.length==0 || (this.items.length < this.length && this.items[this.items.length - 1].distance > 1.0);
+        return this.items.length==0 || (this.items.length < this.length && this.items[this.items.length - 1].distance >= 1.0);
     }
 
     addItem(item) {

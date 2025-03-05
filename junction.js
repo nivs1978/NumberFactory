@@ -16,7 +16,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 class Junction {
-    constructor(x,y) {
+    constructor(x, y) {
         this.outputs = [];
         this.outputIndex = 0;
         this.x = x;
@@ -29,7 +29,7 @@ class Junction {
 
     getOutputBelts() {
         let output = [];
-        for (let i=0; i<this.outputs.length; i++) {
+        for (let i = 0; i < this.outputs.length; i++) {
             output.push(this.outputs[this.outputIndex]);
             this.outputIndex = (this.outputIndex + 1) % this.outputs.length;
         }

@@ -128,7 +128,7 @@ function initializeTestData() {
     extractors.push(extractor);
     setCellComponent(520, 500, extractor);
     drawMode = DrawModeType.CONVEYER;
-    let points = [{ x: 519, y: 499, }, { x: 511, y: 499, }, { x: 511, y: 507 }];
+    let points = [{ x: 519, y: 499, }, { x: 511, y: 499, }, { x: 511, y: 509 }];
     createConveyer(points);
     let points2 = [{ x: 511, y: 500}, {x:512, y: 500}, {x: 512, y: 509}];
     createConveyer(points2);

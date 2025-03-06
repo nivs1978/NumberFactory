@@ -22,17 +22,17 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>BitFactory</title>
         <link rel="stylesheet" href="style.css">
-        <script src="enums.js"></script>
-        <script src="constants.js"></script>
-        <script src="cell.js"></script>
-        <script src="junction.js"></script>
-        <script src="beltitem.js"></script>
-        <script src="beltsegment.js"></script>
-        <script src="beltgraph.js"></script>
-        <script src="util.js"></script>
-        <script src="target.js"></script>
-        <script src="extractor.js"></script>
-        <script src="main.js" defer></script>
+        <script src="js/enums.js"></script>
+        <script src="js/constants.js"></script>
+        <script src="js/util.js"></script>
+        <script src="js/cell.js"></script>
+        <script src="js/belt/junction.js"></script>
+        <script src="js/belt/beltitem.js"></script>
+        <script src="js/belt/beltsegment.js"></script>
+        <script src="js/belt/beltgraph.js"></script>
+        <script src="js/components/target.js"></script>
+        <script src="js/components/extractor.js"></script>
+        <script src="js/main.js" defer></script>
     </head>
     <body>
         <canvas id="bitFactory"></canvas>
@@ -170,6 +170,9 @@
                 </div>
                 <div class="label">Demolish</div>
             </div>
+        </div>
+        <div id="statisticsView" class="view">
+
         </div>
     </body>
 </html>

@@ -17,6 +17,11 @@
 */
 
 class Extractor {
+    static AnchorX = 1;
+    static AnchorY = 1;
+    static Width = 3;
+    static Height = 3;
+
     constructor(ctx, number, tileX, tileY) {
         this.ctx = ctx;
         this.Number = number;
@@ -33,18 +38,18 @@ class Extractor {
     draw(x, y, zoom) {
         const radius = zoom/4;
         const lineWidth = zoom * 0.05;
-        const size = 3 * zoom - lineWidth;
+        const size = Extractor.Width * zoom - lineWidth;
         this.ctx.fillStyle = '#ff0000';
         this.ctx.strokeStyle = 'black';
         this.ctx.lineWidth = lineWidth;
 
         this.ctx.beginPath();
-        this.ctx.roundRect(x - size / 2 + lineWidth, y - size / 2 + lineWidth, size, size, radius);
+        this.ctx.roundRect(x - zoom * Extractor.AnchorX, y - zoom * Extractor.AnchorY, size, size, radius);
         this.ctx.closePath();
         this.ctx.fill();
 
         this.ctx.beginPath();
-        this.ctx.roundRect(x - (size-lineWidth) / 2, y - (size-lineWidth) / 2, size, size, radius);
+        this.ctx.roundRect(x - zoom * Extractor.AnchorX, y - zoom * Extractor.AnchorY, size, size, radius);
         this.ctx.closePath();
         this.ctx.stroke();
 
@@ -52,7 +57,7 @@ class Extractor {
         this.ctx.fillStyle = 'white';
         this.ctx.font = Math.round(zoom*2) + 'px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText(this.Number, x, y+size/4);
+        this.ctx.fillText(this.Number, x+zoom*0.5, y+zoom*1.25);
     }
 
     addBelt(belt) {
@@ -68,5 +73,20 @@ class Extractor {
         if (belt.hasRoomForItem()){
             belt.addItem(new BeltItem(this.Number));
         }
+    }
+
+    getCellTypeAndComponentMatrix() {
+        // create 3x3 2d array
+        let componentMatrix = [];
+        for (let x = 0; x < Extractor.Width; x++) {
+            componentMatrix[x] = [];
+            for (let y = 0; y < Extractor.Height; y++) {
+                var cell = new Cell();
+                cell.Component = this;
+                cell.Type = CellType.EXTRACTOR;
+                componentMatrix[x][y] = cell;
+            }
+        }
+        return componentMatrix;
     }
 }

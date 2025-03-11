@@ -20,6 +20,7 @@ html, body {
     justify-content: center;
     align-items: center;
     background-color: rgba(0, 0, 0, 0.5);
+    z-index: 11;
 }
 
 #menu {
@@ -29,6 +30,7 @@ html, body {
     background-color: #11558888;
     width: 10vw;
     padding: 1vh;
+    z-index: 10;
 }
 
 .menuicon {
@@ -87,18 +89,80 @@ html, body {
     top: 3px;
     left: 3px;
     font-size: 14px;
-  }
+}
 
-  .icon {
+.icon {
     position: absolute;
     top: 10px;
     width: 4vh;
     height: 4vh;
-  }
+}
 
-  .label {
+.label {
     color: white;
     position: absolute;
     bottom: 3px;
     font-size: 1.5vh;
-  }
+}
+
+.view {
+    position: absolute;
+    background: linear-gradient(135deg, #668B9F 0%, #466177 100%);
+    width: 50vw;
+    height: 50vh;
+    border: 1px solid black;
+    z-index: 1000000;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.statisticsCloseButton {
+    position: absolute;
+    top: 1vw;
+    right: 1vw;
+    width:2vw;
+    height:2vw;
+    text-align: center;
+    cursor: pointer;
+    background: linear-gradient(135deg, #368CAD 0%, #28687E 100%);
+    font: 2vw Arial, sans-serif;
+    color: white;
+    padding: 5px;
+    border-radius: 5px;
+    cursor: pointer;
+    border: 1px solid black;
+}
+
+.statisticsHeadline {
+    position: absolute;
+    top: 1vw;
+    left: 1vw;
+    font: 2svw Arial, sans-serif;
+    color: white;
+}
+
+.statisticsContent {
+    background-color: #528CAE;
+    width: 48vw;
+    height: 40vh;
+    margin: 4vw 1vw 1vw 1vw;
+    overflow: auto;
+    color: white;
+    font-size: 2vw;
+    padding: 1vw;
+    box-sizing: border-box;
+}
+
+.flashing {
+    animation: flash 0.5s alternate infinite;
+}
+
+@keyframes flash {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}

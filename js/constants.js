@@ -24,7 +24,7 @@ const beltSpeed = 2;
 const tickDelay = 40;
 const numbersPerSecondFromExtractors = 4;
 
-const levelRequirements = [
+const nextLevelRequirements = [
     { number: 1, requiredCount: 10, unlocks: "Adder" },
     { number: 2, requiredCount: 20, unlocks: null },
     { number: 3, requiredCount: 35, unlocks: "Extraction 2" },

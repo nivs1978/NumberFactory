@@ -18,7 +18,6 @@
 class Cell {
     constructor(backgroundColor) {
         this.BackgroundColor = backgroundColor;
-        this.HasExtractor = false;
         this.Number = 0;
         this.Type = CellType.EMPTY;
         this.Component = null;

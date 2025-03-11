@@ -17,18 +17,20 @@
 */
 
 class Target {
-    constructor(ctx) {
+    constructor(ctx, levelUpCallback = null) {
         this.ctx = ctx;
-        this.level = 0;
+        this.level = 1;
         this.numberCounts = [];
-        this.currentLevelRequirement = null;
-        this.levelUp();
+        this.nextLevelRequirement = nextLevelRequirements.find(l => l.number === this.level);
+        this.levelUpCallback = levelUpCallback;
     }
 
     levelUp() {
+        if (this.levelUpCallback && this.nextLevelRequirement) {
+            this.levelUpCallback(this.nextLevelRequirement.unlocks);
+        }
         this.level++;
-        this.currentLevelRequirement = levelRequirements.find(l => l.number === this.level)
-        this.count = 0;
+        this.nextLevelRequirement = nextLevelRequirements.find(l => l.number === this.level);
     }
 
     addNumber(number) {
@@ -37,11 +39,11 @@ class Target {
         } else {
             this.numberCounts[number]++;
         }
-        let count = this.numberCounts[this.currentLevelRequirement.number];
+        let count = this.numberCounts[this.nextLevelRequirement.number];
         if (count === undefined) {
             count = 0;
         }
-        let targetCount = this.currentLevelRequirement.requiredCount;
+        let targetCount = this.nextLevelRequirement.requiredCount;
         if (count == targetCount) {
             this.levelUp();
         }
@@ -73,12 +75,27 @@ class Target {
         this.ctx.fillStyle = 'lightgreen';
         this.ctx.font = Math.round(zoom) + 'px Arial';
         this.ctx.textAlign = 'center';
-        this.currentLevelRequirement.number
-        let count = this.numberCounts[this.currentLevelRequirement.number];
+        this.nextLevelRequirement.number
+        let count = this.numberCounts[this.nextLevelRequirement.number];
         if (count === undefined) {
             count = 0;
         }
-        let targetCount = this.currentLevelRequirement.requiredCount;
+        let targetCount = this.nextLevelRequirement.requiredCount;
         this.ctx.fillText(count + '/' + targetCount, x, y);
+    }
+
+    getCellTypeAndComponentMatrix() {
+        // create 3x3 2d array
+        let componentMatrix = [];
+        for (let x = 0; x < 6; x++) {
+            componentMatrix[x] = [];
+            for (let y = 0; y < 6; y++) {
+                var cell = new Cell();
+                cell.Component = this;
+                cell.Type = CellType.TARGET;
+                componentMatrix[x][y] = cell;
+            }
+        }
+        return componentMatrix;
     }
 }

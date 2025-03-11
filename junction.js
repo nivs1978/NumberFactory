@@ -15,32 +15,25 @@
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+class Junction {
+    constructor(x, y) {
+        this.outputs = [];
+        this.outputIndex = 0;
+        this.x = x;
+        this.y = y;
+    }
 
-const DirectionType = Object.freeze({
-    HORIZONTAL: 0,
-    VERTICAL: 1
-});
+    addOutput(beltSegment) {
+        this.outputs.push(beltSegment);
+    }
 
-const CellType = Object.freeze({
-    EMPTY: 0,
-    NUMBER: 1,
-    NUMBERBUFFER: 2,
-    CONVEYER: 3,
-    TARGET: 4,
-    JUNCTION: 5,
-    EXTRACTOR: 6,
-    ADDER_A: 7,
-    ADDER_B: 8,
-    ADDER_OUT: 9
-});
-
-const DrawModeType = Object.freeze({
-    NONE: 0,
-    CONVEYER: 1,
-    EXTRACTOR: 2,
-    DEMOLISHER: 3,
-    ADDER: 4,
-    SUBTRACTOR: 5,
-    MULTIPLIER: 6,
-    DIVIDER: 7
-});
+    getOutputBelts() {
+        let output = [];
+        for (let i = 0; i < this.outputs.length; i++) {
+            output.push(this.outputs[this.outputIndex]);
+            this.outputIndex = (this.outputIndex + 1) % this.outputs.length;
+        }
+        this.outputIndex = (this.outputIndex + 1) % this.outputs.length; // Make sure to round robin the outputs
+        return output;
+    }
+}

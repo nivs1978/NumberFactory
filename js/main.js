@@ -17,20 +17,45 @@
 */
 
 //todo list:
-// Fix belt merging into another belt where it over shoots to the belt after the first beltif two belts are running next to each other, but also if there is a space between them
+// Implement adder component
+// Fix belts ending in junction that the item move to the end when there is no room on any target belts.
 // Fix drawing belt inside/along exissting belt, cancel the belt if more than 1 cell is drawn on top of another belt not counting the end
 // Implement demolish functionality (draw rectangle to erase everything within)
 // Implement level ups, where new functionality or numbers are unlocked
 // Implement upgrades like faster belts, extractors etc
-// Implement a way to save and load the game in local storage, perhpas using random seend for the numbers and saving belt graph+components and statistics
+// Implement a way to save and load the game in local storage, perhpas using random seend for the numbers and saving random seed, belt graph+components and levels+ statistics from trget.
 
 
-const canvas = document.getElementById('bitFactory');
-const ctx = canvas.getContext('2d', { alpha: false });
+const canvasGrid = document.getElementById('canvasGrid');
+const ctxGrid = canvasGrid.getContext('2d', { alpha: false });
+
+const canvasConveyers = document.getElementById('canvasConveyers');
+const ctxConveyers = canvasConveyers.getContext('2d', { alpha: true });
+
+const canvasComponents = document.getElementById('canvasComponents');
+const ctxComponents = canvasComponents.getContext('2d', { alpha: true });
+
 let conveyerAnimationStep = 0;
-
-const target = new Target(ctx);
-let extractors = [];
+let statisticsTimer = null;
+const target = new Target(ctxComponents, (unlocks) => {
+    if (unlocks) {
+        console.log(`Unlocked: ${unlocks}`);
+        // switch on unlocks, if unlock is "adder", show the adder button
+        switch (unlocks) {
+            case "Adder":
+                enableButton('adderButton', () => {
+                    drawMode = DrawModeType.ADDER;
+                });
+                const adderButton = document.getElementById('adderButton');
+                Array.from(adderButton.children).forEach(child => child.classList.add('flashing'));
+                setTimeout(() => {
+                    Array.from(adderButton.children).forEach(child => child.classList.remove('flashing'));
+                }, 2000);
+                break;
+        }
+    }
+});
+let components = [];
 
 let scale = 2;
 let drawMode = DrawModeType.NONE;
@@ -41,7 +66,7 @@ const backgroundColors = ['#205987', '#215B8A', '#225C8C', '#225E8F'];
 let isDragging = false;
 let isDrawingConveyor = false;
 let startX, startY;
-let offsetX = canvas.width / 2, offsetY = canvas.height / 2;
+let offsetX = canvasGrid.width / 2, offsetY = canvasGrid.height / 2;
 let hoverX = -1, hoverY = -1;
 let conveyorStartX = -1, conveyorStartY = -1;
 let conveyerDrawStartDirection = DirectionType.HORIZONTAL;
@@ -123,9 +148,9 @@ for (let i = 0; i < 1024; i++) {
 // Initial test data
 function initializeTestData() {
 //  enable to create test data
-   enableNumber(520, 500, 1);
-    let extractor = new Extractor(ctx, 1, 520, 500);
-    extractors.push(extractor);
+    enableNumber(520, 500, 1);
+    let extractor = new Extractor(ctxComponents, 1, 520, 500);
+    components.push(extractor);
     setCellComponent(520, 500, extractor);
     drawMode = DrawModeType.CONVEYER;
     let points = [{ x: 519, y: 499, }, { x: 511, y: 499, }, { x: 511, y: 509 }];
@@ -138,82 +163,102 @@ function initializeTestData() {
     createConveyer(points4);
 }
 
-//initializeTestData();
+initializeTestData();
 
 function drawSuggestedConveyer()
 {
-    ctx.strokeStyle = '#00ff0044';
-    ctx.lineWidth = 8 * scale;
-    ctx.beginPath();
-    ctx.moveTo(conveyorStartX * scaledCellSize + offsetX + scaledCellSize / 2, conveyorStartY * scaledCellSize + offsetY + scaledCellSize / 2);
+    ctxConveyers.strokeStyle = '#00ff0044';
+    ctxConveyers.lineWidth = 8 * scale;
+    ctxConveyers.beginPath();
+    ctxConveyers.moveTo(conveyorStartX * scaledCellSize + offsetX + scaledCellSize / 2, conveyorStartY * scaledCellSize + offsetY + scaledCellSize / 2);
     if (conveyerDrawStartDirection === DirectionType.HORIZONTAL) {
-        ctx.lineTo(hoverX * scaledCellSize + offsetX + scaledCellSize / 2, conveyorStartY * scaledCellSize + offsetY + scaledCellSize / 2);
-        ctx.lineTo(hoverX * scaledCellSize + offsetX + scaledCellSize / 2, hoverY * scaledCellSize + offsetY + scaledCellSize / 2);
+        ctxConveyers.lineTo(hoverX * scaledCellSize + offsetX + scaledCellSize / 2, conveyorStartY * scaledCellSize + offsetY + scaledCellSize / 2);
+        ctxConveyers.lineTo(hoverX * scaledCellSize + offsetX + scaledCellSize / 2, hoverY * scaledCellSize + offsetY + scaledCellSize / 2);
     } else {
-        ctx.lineTo(conveyorStartX * scaledCellSize + offsetX + scaledCellSize / 2, hoverY * scaledCellSize + offsetY + scaledCellSize / 2);
-        ctx.lineTo(hoverX * scaledCellSize + offsetX + scaledCellSize / 2, hoverY * scaledCellSize + offsetY + scaledCellSize / 2);
+        ctxConveyers.lineTo(conveyorStartX * scaledCellSize + offsetX + scaledCellSize / 2, hoverY * scaledCellSize + offsetY + scaledCellSize / 2);
+        ctxConveyers.lineTo(hoverX * scaledCellSize + offsetX + scaledCellSize / 2, hoverY * scaledCellSize + offsetY + scaledCellSize / 2);
     }
-    ctx.stroke();
-    ctx.lineWidth = 1;
+    ctxConveyers.stroke();
+    ctxConveyers.lineWidth = 1;
+}
+
+function drawComponents() {
+    ctxComponents.clearRect(0, 0, canvasComponents.width, canvasComponents.height);
+    target.draw((gridSize / 2) * scaledCellSize + offsetX, (gridSize / 2) * scaledCellSize + offsetY, scaledCellSize);
+
+    for (let i = 0; i < components.length; i++) {
+        const component = components[i];
+        const posX = component.tileX * scaledCellSize + offsetX;
+        const posY = component.tileY * scaledCellSize + offsetY;
+        component.draw(posX, posY, scaledCellSize);
+    }
 }
 
 function drawGrid() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = '#2870A5';
-    ctx.lineWidth = 1;
-    ctx.fillStyle='#000000';
-    ctx.font = `${cellSize * scale}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'miWddle';
+    ctxGrid.clearRect(0, 0, canvasGrid.width, canvasGrid.height);
+    ctxGrid.strokeStyle = '#2870A5';
+    ctxGrid.lineWidth = 1;
+    ctxGrid.fillStyle = '#000000';
+    ctxGrid.font = `${cellSize * scale}px Arial`;
+    ctxGrid.textAlign = 'center';
+    ctxGrid.textBaseline = 'middle';
 
     for (let x = 0; x < gridSize; x++) {
         for (let y = 0; y < gridSize; y++) {
             const drawX = x * scaledCellSize + offsetX;
             const drawY = y * scaledCellSize + offsetY;
-            if (drawX + scaledCellSize > 0 && drawX < canvas.width && drawY + scaledCellSize > 0 && drawY < canvas.height) {
+            if (drawX + scaledCellSize > 0 && drawX < canvasGrid.width && drawY + scaledCellSize > 0 && drawY < canvasGrid.height) {
                 let cell = matrix[x][y];
-                ctx.fillStyle = cell.BackgroundColor;
-                ctx.fillRect(drawX, drawY, scaledCellSize, scaledCellSize);
+                ctxGrid.fillStyle = cell.BackgroundColor;
+                ctxGrid.fillRect(drawX, drawY, scaledCellSize, scaledCellSize);
                 if (cell.Type == CellType.NUMBER) {
                     if (cell.Number <= target.level)
                     {
-                    ctx.fillStyle = '#cccccc';
+                        ctxGrid.fillStyle = '#cccccc';
                     } else {
-                        ctx.fillStyle = '#9999ff';
+                        ctxGrid.fillStyle = '#9999ff';
                     }
-                    ctx.fillText(cell.Number, drawX + scaledCellSize / 2, drawY + scaledCellSize / 2 + scale*4);
+                    ctxGrid.font = `${cellSize * scale}px Arial`;
+                    ctxGrid.fillText(cell.Number, drawX + scaledCellSize / 2, drawY + scaledCellSize / 2 + scale);
                 }
+                ctxGrid.font = `${cellSize * scale / 4.0}px Arial`;
+                ctxGrid.fillStyle = '#000000'; // Ensure the fill style is set to black
+                ctxGrid.fillText(cell.Type, drawX + scaledCellSize/8, drawY + scaledCellSize/8);
             }
         }
     }
-
+/*
     if (scale >= 2) {
-        ctx.beginPath();
+        ctxGrid.beginPath();
         for (let x = 0; x <= gridSize; x++) {
             const drawX = x * scaledCellSize + offsetX;
-            if (drawX >= 0 && drawX <= canvas.width) {
-                ctx.moveTo(drawX, 0);
-                ctx.lineTo(drawX, canvas.height);
+            if (drawX >= 0 && drawX <= canvasGrid.width) {
+                ctxGrid.moveTo(drawX, 0);
+                ctxGrid.lineTo(drawX, canvasGrid.height);
             }
         }
         for (let y = 0; y <= gridSize; y++) {
             const drawY = y * scaledCellSize + offsetY;
-            if (drawY >= 0 && drawY <= canvas.height) {
-                ctx.moveTo(0, drawY);
-                ctx.lineTo(canvas.width, drawY);
+            if (drawY >= 0 && drawY <= canvasGrid.height) {
+                ctxGrid.moveTo(0, drawY);
+                ctxGrid.lineTo(canvasGrid.width, drawY);
             }
         }
-        ctx.stroke();
+        ctxGrid.stroke();
     }
-
-    if (isDrawingConveyor && conveyorStartX >= 0 && conveyorStartY >= 0) {
-        drawSuggestedConveyer();
-    }
+    */
 }
 
 function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvasGrid.width = window.innerWidth;
+    canvasGrid.height = window.innerHeight;
+    canvasConveyers.width = window.innerWidth;
+    canvasConveyers.height = window.innerHeight;
+    canvasComponents.width = window.innerWidth;
+    canvasComponents.height = window.innerHeight;
+
+    drawGrid();
+    drawComponents();
 }
 
 function handleScroll(event) {
@@ -221,7 +266,7 @@ function handleScroll(event) {
     const mouseX = event.clientX;
     const mouseY = event.clientY;
 
-    const canvasRect = canvas.getBoundingClientRect();
+    const canvasRect = canvasGrid.getBoundingClientRect();
     const offsetXBeforeZoom = (mouseX - canvasRect.left) / scale - offsetX / scale;
     const offsetYBeforeZoom = (mouseY - canvasRect.top) / scale - offsetY / scale;
 
@@ -241,20 +286,23 @@ function handleScroll(event) {
     offsetY += (offsetYAfterZoom - offsetYBeforeZoom) * scale;
 
     // Ensure the user cannot pan or zoom outside the grid
-    const maxOffsetX = canvas.width - gridSize * cellSize * scale;
-    const maxOffsetY = canvas.height - gridSize * cellSize * scale;
+    const maxOffsetX = canvasGrid.width - gridSize * cellSize * scale;
+    const maxOffsetY = canvasGrid.height - gridSize * cellSize * scale;
     offsetX = Math.min(0, Math.max(maxOffsetX, offsetX));
     offsetY = Math.min(0, Math.max(maxOffsetY, offsetY));
+    drawGrid();
+    drawComponents();
 }
 
 function setCellComponent(x, y, component) {
-    for (let i = -1; i <= 1; i++) {
-        for (let j = -1; j <= 1; j++) {
-            let cell = matrix[x + i][y + j];
-            cell.Component = component;
-            if (component instanceof Extractor) {
-                cell.HasExtractor = true;
-            }
+    var componentMatrix = component.getCellTypeAndComponentMatrix();
+    let anchorX = component.constructor.AnchorX;
+    let anchorY = component.constructor.AnchorY;
+    for (let i = 0; i < componentMatrix.length; i++) {
+        for (let j = 0; j < componentMatrix[0].length; j++) {
+            let cell = matrix[x + i - anchorX][y + j - anchorY];
+            cell.Component = componentMatrix[i][j].Component;
+            cell.Type = componentMatrix[i][j].Type;
         }
     }
 }
@@ -269,7 +317,7 @@ function handleMouseDown(event) {
         const mouseY = event.clientY;
 
         // Get the cell coordinates
-        const canvasRect = canvas.getBoundingClientRect();
+        const canvasRect = canvasGrid.getBoundingClientRect();
         const x = Math.floor((mouseX - canvasRect.left - offsetX) / (cellSize * scale));
         const y = Math.floor((mouseY - canvasRect.top - offsetY) / (cellSize * scale));
         const cell = matrix[x][y];
@@ -280,7 +328,7 @@ function handleMouseDown(event) {
             && x < gridSize 
             && y >= 0 
             && y < gridSize 
-            && (cell.HasExtractor || cell.Type === CellType.CONVEYER)) {
+            && (cell.Type==CellType.EXTRACTOR || cell.Type === CellType.CONVEYER)) {
             isDrawingConveyor = true;
             conveyorStartX = x;
             conveyorStartY = y;
@@ -290,9 +338,29 @@ function handleMouseDown(event) {
         if (drawMode === DrawModeType.EXTRACTOR) {
             if (cell && cell.Type === CellType.NUMBER && target.level >= cell.Number) {
                 if (hoverX >= 0 && hoverY >= 0) {
-                    let extractor = new Extractor(ctx, cell.Number, hoverX, hoverY);
-                    extractors.push(extractor);
+                    let extractor = new Extractor(ctxComponents, cell.Number, hoverX, hoverY);
+                    components.push(extractor);
                     setCellComponent(hoverX, hoverY, extractor);
+                    drawComponents();
+                }
+            }
+        } else if (drawMode == DrawModeType.ADDER) {
+            if (hoverX >= 1 && hoverY >= 1 && hoverX < gridSize-1 && hoverY < gridSize-1) {
+                // check if the area is empty
+                let empty = true;
+                for (let i = 0; i < Adder.Width; i++) {
+                    for (let j = 0; j < Adder.Height; j++) {
+                        if (matrix[hoverX + i][hoverY + j].Type != CellType.EMPTY) {
+                            empty = false;
+                            break;
+                        }
+                    }
+                }
+                if (empty) {
+                    const adder = new Adder(ctxComponents, hoverX, hoverY);
+                    components.push(adder);
+                    setCellComponent(hoverX, hoverY, adder);
+                    drawComponents();
                 }
             }
         }
@@ -309,14 +377,12 @@ function handleMouseMove(event) {
         startY = event.clientY;
 
         // Ensure the user cannot pan outside the grid
-        const maxOffsetX = canvas.width - gridSize * cellSize * scale;
-        const maxOffsetY = canvas.height - gridSize * cellSize * scale;
-        if (offsetX > 0)
-        {
+        const maxOffsetX = canvasGrid.width - gridSize * cellSize * scale;
+        const maxOffsetY = canvasGrid.height - gridSize * cellSize * scale;
+        if (offsetX > 0) {
             offsetX = 0;
         }
-        if (offsetY > 0)
-        {
+        if (offsetY > 0) {
             offsetY = 0;
         }
         if (offsetX < maxOffsetX) {
@@ -326,12 +392,14 @@ function handleMouseMove(event) {
             offsetY = maxOffsetY;
         }
 
+        drawGrid(); // Redraw the grid with the new offset values
+        drawComponents();
     } else {
         const mouseX = event.clientX;
         const mouseY = event.clientY;
 
         // Get the cell coordinates
-        const canvasRect = canvas.getBoundingClientRect();
+        const canvasRect = canvasGrid.getBoundingClientRect();
         const x = Math.floor((mouseX - canvasRect.left - offsetX) / (cellSize * scale));
         const y = Math.floor((mouseY - canvasRect.top - offsetY) / (cellSize * scale));
 
@@ -529,7 +597,7 @@ function createConveyer(points) {
 }
 
 function convertToConveyer(mouseX, mouseY) {
-    const canvasRect = canvas.getBoundingClientRect();
+    const canvasRect = canvasGrid.getBoundingClientRect();
     const x = Math.floor((mouseX - canvasRect.left - offsetX) / (cellSize * scale));
     const y = Math.floor((mouseY - canvasRect.top - offsetY) / (cellSize * scale));
 
@@ -569,54 +637,68 @@ function initializeButtons() {
     enableButton('demolishButton', () => {
         drawMode = DrawModeType.DEMOLISHER;
     });
-    statisticsButton.addEventListener('click', () => {
-        
+    enableButton('adderButton', () => {
+        drawMode = DrawModeType.ADDER;
     });
-    clockButton.addEventListener('click', () => {
-        tick();
+
+    const statisticsContent = document.getElementById('statisticsContent');
+    const statisticsView = document.getElementById('statisticsView');
+    const statisticsButton = document.getElementById('statisticsButton');
+
+    statisticsButton.addEventListener('click', () => {
+        statisticsTimer = setInterval(() => {
+        statisticsContent.innerHTML = '';
+        for (let number in target.numberCounts) {
+            const count = target.numberCounts[number];
+            const div = document.createElement('div');
+            div.innerText = `${number}: ${count}`;
+            statisticsContent.appendChild(div);
+        }
+        }, 1000);
+        statisticsView.style.display = "block";
+    });
+
+    document.getElementById('statisticsCloseButton').addEventListener('click', () => {
+        clearInterval(statisticsTimer);
+        statisticsView.style.display = 'none';
     });
 }
 
 document.addEventListener('DOMContentLoaded', initializeButtons);
 
 window.addEventListener('resize', resizeCanvas);
-canvas.addEventListener('wheel', handleScroll);
-canvas.addEventListener('mousedown', handleMouseDown);
-canvas.addEventListener('mousemove', handleMouseMove);
-canvas.addEventListener('mouseup', handleMouseUp);
-canvas.addEventListener('contextmenu', event => event.preventDefault());
+canvasComponents.addEventListener('wheel', handleScroll);
+canvasComponents.addEventListener('mousedown', handleMouseDown);
+canvasComponents.addEventListener('mousemove', handleMouseMove);
+canvasComponents.addEventListener('mouseup', handleMouseUp);
+canvasComponents.addEventListener('contextmenu', event => event.preventDefault());
 
 resizeCanvas();
-offsetX = canvas.width / 2 - (gridSize * cellSize * scale) / 2;
-offsetY = canvas.height / 2 - (gridSize * cellSize * scale) / 2;
+offsetX = canvasGrid.width / 2 - (gridSize * cellSize * scale) / 2;
+offsetY = canvasGrid.height / 2 - (gridSize * cellSize * scale) / 2;
 
 function mainLoop() {
-    drawGrid();
-    beltGraph.draw(ctx, cellSize, scale, offsetX, offsetY);
-    // Draw the target in the center of the grid
-    const centerX = (gridSize / 2) * scaledCellSize + offsetX;
-    const centerY = (gridSize / 2) * scaledCellSize + offsetY;
-    target.draw(centerX, centerY, scaledCellSize);
+    ctxConveyers.clearRect(0, 0, canvasConveyers.width, canvasConveyers.height);
+    beltGraph.draw(ctxConveyers, cellSize, scale, offsetX, offsetY);
 
-    // Draw extractors
-    for (let i = 0; i < extractors.length; i++) {
-        const extractor = extractors[i];
-        const posX = extractor.tileX * scaledCellSize + offsetX + scaledCellSize * 0.5;
-        const posY = extractor.tileY * scaledCellSize + offsetY + scaledCellSize * 0.5;
-        extractor.draw(posX, posY, scaledCellSize);
-    }
-
-    if (drawMode == DrawModeType.CONVEYER && hoverX >= 0 && hoverY >= 0 && hoverX < gridSize && hoverY < gridSize) {
-        ctx.fillStyle = 'rgba(0, 255, 0, 0.25)';
+    if (isDrawingConveyor && conveyorStartX >= 0 && conveyorStartY >= 0) {
+        drawSuggestedConveyer();
+    } else if (drawMode == DrawModeType.CONVEYER && hoverX >= 0 && hoverY >= 0 && hoverX < gridSize && hoverY < gridSize) {
+        ctxConveyers.fillStyle = 'rgba(0, 255, 0, 0.25)';
         const drawX = hoverX * scaledCellSize + offsetX;
         const drawY = hoverY * scaledCellSize + offsetY;
-        ctx.fillRect(drawX, drawY, scaledCellSize, scaledCellSize);
+        ctxConveyers.fillRect(drawX, drawY, scaledCellSize, scaledCellSize);
     } else if (drawMode == DrawModeType.EXTRACTOR && hoverX >= 1 && hoverY >= 1 && hoverX < gridSize-1 && hoverY < gridSize-1) {
-        ctx.fillStyle = 'rgba(255, 0, 0, 0.25)';
+        ctxConveyers.fillStyle = 'rgba(255, 0, 0, 0.25)';
         const drawX = (hoverX - 1) * scaledCellSize + offsetX;
         const drawY = (hoverY - 1) * scaledCellSize + offsetY;
-        ctx.fillRect(drawX, drawY, scaledCellSize * 3, scaledCellSize * 3);
+        ctxConveyers.fillRect(drawX, drawY, scaledCellSize * 3, scaledCellSize * 3);
+    } else if (drawMode == DrawModeType.ADDER && hoverX >= 1 && hoverY >= 1 && hoverX < gridSize-1 && hoverY < gridSize-1) {
+        const adder = new Adder(ctxConveyers, hoverX, hoverY);
+        adder.draw(hoverX * scaledCellSize + offsetX, hoverY * scaledCellSize + offsetY, scaledCellSize, true);
     }
+
+
     requestAnimationFrame(mainLoop);
 }
 
@@ -655,5 +737,7 @@ function tick() {
    beltGraph.tick();
 }
 
+drawGrid();
+drawComponents();
 mainLoop();
 setInterval(tick, tickDelay);

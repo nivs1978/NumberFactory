@@ -32,17 +32,31 @@
         <script src="js/belt/beltgraph.js"></script>
         <script src="js/components/target.js"></script>
         <script src="js/components/extractor.js"></script>
+        <script src="js/components/adder.js"></script>
         <script src="js/main.js" defer></script>
+        <style>
+            canvas {
+                position: absolute;
+                top: 0;
+                left: 0;
+                background-color: transparent;
+            }
+            #canvasGrid {
+                z-index: 1;
+            }
+            #canvasConveyers {
+                z-index: 2;
+            }
+            #canvasComponents {
+                z-index: 3;
+            }
+        </style>
     </head>
     <body>
-        <canvas id="bitFactory"></canvas>
+        <canvas id="canvasGrid"></canvas>
+        <canvas id="canvasConveyers"></canvas>
+        <canvas id="canvasComponents"></canvas>
         <div id="menu">
-            <div id="clockButton" class="menuicon">
-                <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="50" y="40" width="30" height="120" fill="black"/>
-                    <rect x="120" y="40" width="30" height="120" fill="black"/>
-                  </svg>
-            </div>
             <div id="menuButton" class="menuicon">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
                     <rect x="30" y="40" width="140" height="16" fill="white" />
@@ -171,8 +185,11 @@
                 <div class="label">Demolish</div>
             </div>
         </div>
-        <div id="statisticsView" class="view">
-
+        <div id="statisticsView" class="view" style="display: none;">
+            <div class="statisticsHeadline" style="float: left;">DELIVERED NUMBERS</div>
+            <div id="statisticsCloseButton" class="statisticsCloseButton" style="float: right;">X</div>
+            <div id="statisticsContent" class="statisticsContent">
+            </div>
         </div>
     </body>
 </html>

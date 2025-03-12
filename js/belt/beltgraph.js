@@ -109,7 +109,7 @@ class BeltGraph {
             if (prev!=null) {
                 if (prev instanceof Junction) {
                     prev.addOutput(newSegment);
-                } else {
+                } else if (prev instanceof Extractor) {
                     prev.addBelt(newSegment);
                 }
             }

@@ -17,12 +17,13 @@
 */
 
 class Target {
-    constructor(ctx, levelUpCallback = null) {
+    constructor(ctx, levelUpCallback = null, redrawCallback = null) {
         this.ctx = ctx;
         this.level = 1;
         this.numberCounts = [];
         this.nextLevelRequirement = nextLevelRequirements.find(l => l.number === this.level);
         this.levelUpCallback = levelUpCallback;
+        this.redrawCallback = redrawCallback;
     }
 
     levelUp() {
@@ -44,6 +45,9 @@ class Target {
             count = 0;
         }
         let targetCount = this.nextLevelRequirement.requiredCount;
+        if (this.redrawCallback && this.nextLevelRequirement.number === number) {
+            this.redrawCallback();
+        }
         if (count == targetCount) {
             this.levelUp();
         }

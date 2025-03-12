@@ -54,7 +54,8 @@ const target = new Target(ctxComponents, (unlocks) => {
                 break;
         }
     }
-});
+}, drawComponents);
+
 let components = [];
 
 let scale = 2;
@@ -152,7 +153,11 @@ function initializeTestData() {
     let extractor = new Extractor(ctxComponents, 1, 520, 500);
     components.push(extractor);
     setCellComponent(520, 500, extractor);
+    let adder = new Adder(ctxComponents, 511, 500);
+    components.push(adder);
+    setCellComponent(511, 500, adder);
     drawMode = DrawModeType.CONVEYER;
+/*
     let points = [{ x: 519, y: 499, }, { x: 511, y: 499, }, { x: 511, y: 509 }];
     createConveyer(points);
     let points2 = [{ x: 511, y: 500}, {x:512, y: 500}, {x: 512, y: 509}];
@@ -161,6 +166,12 @@ function initializeTestData() {
     createConveyer(points3);
     let points4 = [{ x: 516, y: 499}, {x:516, y: 504}, {x: 513, y: 504}];
     createConveyer(points4);
+    */
+
+    let points5 = [{ x: 519, y: 500}, {x:512, y: 500}];
+    createConveyer(points5);
+    let points6 = [{ x: 519, y: 501}, {x:512, y: 501}];
+    createConveyer(points6);
 }
 
 initializeTestData();
@@ -328,7 +339,7 @@ function handleMouseDown(event) {
             && x < gridSize 
             && y >= 0 
             && y < gridSize 
-            && (cell.Type==CellType.EXTRACTOR || cell.Type === CellType.CONVEYER)) {
+            && (cell.Type==CellType.EXTRACTOR || cell.Type === CellType.CONVEYER || cell.Type === CellType.ADDER_OUT)) {
             isDrawingConveyor = true;
             conveyorStartX = x;
             conveyorStartY = y;
@@ -574,12 +585,34 @@ function UpdateCellsToConveyer(beltSegment) {
 }
 
 function createConveyer(points) {
-    let startComponent = matrix[points[0].x][points[0].y].Component;
-    let endComponent = matrix[points[points.length - 1].x][points[points.length - 1].y].Component;
+    let cellStart = matrix[points[0].x][points[0].y];
+    let startComponent = cellStart.Component;
+    let cellEnd = matrix[points[points.length - 1].x][points[points.length - 1].y];
+    let endComponent = cellEnd.Component;
+    if (startComponent != endComponent && !(endComponent instanceof Extractor)) {
+        let result = null;
+        let canAddBelt = true;
 
-    if (startComponent !=endComponent) {
-        if (endComponent == null || !(endComponent instanceof Extractor)) {
-            let result = beltGraph.addBelt(points, startComponent, endComponent);
+        if (startComponent instanceof Adder) {
+            canAddBelt = startComponent.canAddBelt(cellStart.Type);
+        }
+
+        if (endComponent instanceof Adder) {
+            canAddBelt = endComponent.canAddBelt(cellEnd.Type);
+        } 
+
+        if (canAddBelt) {
+            result = beltGraph.addBelt(points, startComponent, endComponent);
+            if (startComponent instanceof Adder) {
+                startComponent.setBelt(result.beltSegments[0], cellStart.Type);
+            }
+
+            if (endComponent instanceof Adder) {
+                endComponent.setBelt(result.beltSegments[0], cellEnd.Type);
+            }
+        }
+        if (result)
+        {
             if (result.beltSegments) {
                 for (let beltSegment of result.beltSegments) {
                     UpdateCellsToConveyer(beltSegment);

@@ -159,6 +159,11 @@ class BeltSegment {
                         break;
                     }
                 } 
+            } else if (this.next instanceof Adder) {
+                let adder = this.next;
+                if (adder.addBeltItemIfPossible(this, this.items[0])) {
+                    this.items.shift();
+                }
             }
         }
 

@@ -11,6 +11,11 @@ class Adder {
         this.beltA = null;
         this.beltB = null;
         this.beltSumOut = null;
+        this.valueA = 0;
+        this.valueB = 0;
+        this.valueSum = 0;
+        this.addInterval = 4;
+        this.numberTimer = setInterval(() => this.outputNumbers(), 4000);
     }
 
     draw(x, y, zoom, transparent = false) {
@@ -44,19 +49,55 @@ class Adder {
         this.ctx.fillText("A+B", x+zoom/2, y+zoom*1.15);
     }
 
-    addBelt(belt) {
- //       this.belts.push(belt);
+    canAddBelt(cellType) {
+        switch (cellType) {
+            case CellType.ADDER_A:
+                return this.beltA == null;
+            case CellType.ADDER_B:
+                return this.beltB == null;
+            case CellType.ADDER_OUT:
+                return this.beltSumOut == null;
+        }
+        return false;
+    }
+
+    setBelt(belt, cellType) {
+        switch (cellType) {
+            case CellType.ADDER_A:
+                this.beltA = belt;
+                break;
+            case CellType.ADDER_B:
+                this.beltB = belt;
+                break;
+            case CellType.ADDER_OUT:
+                this.beltSumOut = belt;
+                break;
+        }
+    }
+
+    addBeltItemIfPossible(sourceBelt, beltItem) {
+        if (sourceBelt == this.beltA && this.valueA == 0) {
+            this.valueA = beltItem.number;
+            return true;
+        } else if (sourceBelt == this.beltB && this.valueB == 0) {
+            this.valueB = beltItem.number;
+            return true;
+        }
+        return false;
     }
 
     outputNumbers() {
-/*        if (this.belts.length == 0) {
-            return;
+        if (this.valueSum && this.beltSumOut) {
+            if (this.beltSumOut.hasRoomForItem()) {
+                this.beltSumOut.addItem(new BeltItem(this.valueSum));
+            this.valueSum = 0;
+            } 
         }
-        this.lastBeltOutputIndex = (this.lastBeltOutputIndex + 1) % this.belts.length;
-        const belt = this.belts[this.lastBeltOutputIndex];
-        if (belt.hasRoomForItem()){
-            belt.addItem(new BeltItem(this.Number));
-        }*/
+        if (this.valueA != 0 && this.valueB != 0 && this.valueSum == 0) {
+            this.valueSum = this.valueA + this.valueB;
+            this.valueA = 0;
+            this.valueB = 0;
+        }
     }
 
     getCellTypeAndComponentMatrix() {

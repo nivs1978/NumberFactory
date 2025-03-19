@@ -44,3 +44,10 @@ const DrawModeType = Object.freeze({
     MULTIPLIER: 6,
     DIVIDER: 7
 });
+
+const ComponentRotation = Object.freeze({
+    UP: 0,
+    RIGHT: 1,
+    DOWN: 2,
+    LEFT: 3
+});

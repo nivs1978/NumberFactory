@@ -126,7 +126,7 @@ class BeltSegment {
                 let p2 = this.points[i + 1];
                 let intersects = this.pointBetweenTwoPoints(x, y, p1, p2);
                 if (intersects) {
-                    // cut the belt at p2 (points[i+1]) and add point x,y at the ned of the old segment and x,y as a new point at the start of the cut segment
+                    // cut the belt at p2 (points[i+1]) and add point x,y at the end of the old segment and x,y as a new point at the start of the cut segment
                     let newPoints =[{x: x, y:y}].concat(this.points.slice(i + 1));
                     this.points = this.points.slice(0, i + 1);
                     this.points.push({ x, y });

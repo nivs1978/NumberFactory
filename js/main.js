@@ -17,12 +17,12 @@
 */
 
 //todo list:
-// Implement adder component
-// Fix belts ending in junction that the item move to the end when there is no room on any target belts.
+// Fix items moving to end of belt when there is no room in junction. It also looks like one item too many is added in the first place to the next belt segment, so the last item in the next belt segment is drawn on top of the junction.
 // Fix drawing belt inside/along exissting belt, cancel the belt if more than 1 cell is drawn on top of another belt not counting the end
 // Implement demolish functionality (draw rectangle to erase everything within)
-// Implement level ups, where new functionality or numbers are unlocked
+// Implement rotation of adder
 // Implement upgrades like faster belts, extractors etc
+// Implement level ups from level 4 and forward
 // Implement a way to save and load the game in local storage, perhpas using random seend for the numbers and saving random seed, belt graph+components and levels+ statistics from trget.
 
 
@@ -149,6 +149,7 @@ for (let i = 0; i < 1024; i++) {
 // Initial test data
 function initializeTestData() {
 //  enable to create test data
+   
     enableNumber(520, 500, 1);
     let extractor = new Extractor(ctxComponents, 1, 520, 500);
     components.push(extractor);
@@ -170,7 +171,7 @@ function initializeTestData() {
 
     let points5 = [{ x: 519, y: 500}, {x:512, y: 500}];
     createConveyer(points5);
-    let points6 = [{ x: 519, y: 501}, {x:512, y: 501}];
+    let points6 = [{ x: 515, y: 500}, { x: 515, y: 501}, {x:512, y: 501}];
     createConveyer(points6);
 }
 
@@ -232,13 +233,15 @@ function drawGrid() {
                     ctxGrid.font = `${cellSize * scale}px Arial`;
                     ctxGrid.fillText(cell.Number, drawX + scaledCellSize / 2, drawY + scaledCellSize / 2 + scale);
                 }
-                ctxGrid.font = `${cellSize * scale / 4.0}px Arial`;
+                /*
+               ctxGrid.font = `${cellSize * scale / 4.0}px Arial`;
                 ctxGrid.fillStyle = '#000000'; // Ensure the fill style is set to black
                 ctxGrid.fillText(cell.Type, drawX + scaledCellSize/8, drawY + scaledCellSize/8);
+                */
             }
         }
     }
-/*
+
     if (scale >= 2) {
         ctxGrid.beginPath();
         for (let x = 0; x <= gridSize; x++) {
@@ -257,7 +260,7 @@ function drawGrid() {
         }
         ctxGrid.stroke();
     }
-    */
+    
 }
 
 function resizeCanvas() {
@@ -603,11 +606,11 @@ function createConveyer(points) {
 
         if (canAddBelt) {
             result = beltGraph.addBelt(points, startComponent, endComponent);
-            if (startComponent instanceof Adder) {
+            if (startComponent instanceof Adder && startComponent.canAddBelt(cellStart.Type)) {
                 startComponent.setBelt(result.beltSegments[0], cellStart.Type);
             }
 
-            if (endComponent instanceof Adder) {
+            if (endComponent instanceof Adder && endComponent.canAddBelt(cellEnd.Type)) {
                 endComponent.setBelt(result.beltSegments[0], cellEnd.Type);
             }
         }
@@ -718,6 +721,11 @@ function mainLoop() {
         drawSuggestedConveyer();
     } else if (drawMode == DrawModeType.CONVEYER && hoverX >= 0 && hoverY >= 0 && hoverX < gridSize && hoverY < gridSize) {
         ctxConveyers.fillStyle = 'rgba(0, 255, 0, 0.25)';
+        const drawX = hoverX * scaledCellSize + offsetX;
+        const drawY = hoverY * scaledCellSize + offsetY;
+        ctxConveyers.fillRect(drawX, drawY, scaledCellSize, scaledCellSize);
+    } else if (drawMode == DrawModeType.DEMOLISHER && hoverX >= 1 && hoverY >= 1 && hoverX < gridSize-1 && hoverY < gridSize-1) {
+        ctxConveyers.fillStyle = 'rgba(255, 0, 0, 0.25)';
         const drawX = hoverX * scaledCellSize + offsetX;
         const drawY = hoverY * scaledCellSize + offsetY;
         ctxConveyers.fillRect(drawX, drawY, scaledCellSize, scaledCellSize);

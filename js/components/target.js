@@ -21,7 +21,7 @@ class Target {
         this.ctx = ctx;
         this.level = 1;
         this.numberCounts = [];
-        this.nextLevelRequirement = nextLevelRequirements.find(l => l.number === this.level);
+        this.nextLevelRequirement = nextLevelRequirements.find(l => l.level === this.level);
         this.levelUpCallback = levelUpCallback;
         this.redrawCallback = redrawCallback;
     }
@@ -31,25 +31,28 @@ class Target {
             this.levelUpCallback(this.nextLevelRequirement.unlocks);
         }
         this.level++;
-        this.nextLevelRequirement = nextLevelRequirements.find(l => l.number === this.level);
+        this.nextLevelRequirement = nextLevelRequirements.find(l => l.level === this.level);
     }
 
     addNumber(number) {
-        if (this.numberCounts[number] === undefined) {
-            this.numberCounts[number] = 1;
-        } else {
-            this.numberCounts[number]++;
-        }
-        let count = this.numberCounts[this.nextLevelRequirement.number];
-        if (count === undefined) {
-            count = 0;
-        }
-        let targetCount = this.nextLevelRequirement.requiredCount;
-        if (this.redrawCallback && this.nextLevelRequirement.number === number) {
-            this.redrawCallback();
-        }
-        if (count == targetCount) {
-            this.levelUp();
+        if (number <= this.nextLevelRequirement.number) {
+            if (this.numberCounts[number] === undefined) {
+                this.numberCounts[number] = 1;
+            } else {
+                this.numberCounts[number]++;
+            }
+            let count = this.numberCounts[this.nextLevelRequirement.number];
+            if (count === undefined) {
+                count = 0;
+            }
+            let targetCount = this.nextLevelRequirement.requiredCount;
+            if (this.redrawCallback && this.nextLevelRequirement.number === number) {
+                this.redrawCallback();
+            }
+            if (count >= targetCount) {
+                this.levelUp();
+                this.redrawCallback();
+            }
         }
     }
 
@@ -73,19 +76,25 @@ class Target {
         this.ctx.fillStyle = 'white';
         this.ctx.font = Math.round(zoom*2) + 'px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText(this.level, x, y - size / 5);
+        this.ctx.fillText(this.nextLevelRequirement.number, x, y - size / 5);
 
         // draw count and target count as x/y in the center
         this.ctx.fillStyle = 'lightgreen';
         this.ctx.font = Math.round(zoom) + 'px Arial';
         this.ctx.textAlign = 'center';
-        this.nextLevelRequirement.number
+        
+        // Draw the count of the current number
         let count = this.numberCounts[this.nextLevelRequirement.number];
         if (count === undefined) {
             count = 0;
         }
         let targetCount = this.nextLevelRequirement.requiredCount;
         this.ctx.fillText(count + '/' + targetCount, x, y);
+
+        // Draw the number of the current level
+        this.ctx.fillStyle = 'lightgray';
+        this.ctx.font = Math.round(zoom * 0.6) + 'px Arial';
+        this.ctx.fillText("LEVEL " + this.level, x, y + size / 6);
     }
 
     getCellTypeAndComponentMatrix() {

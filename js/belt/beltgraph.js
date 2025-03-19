@@ -61,8 +61,18 @@ class BeltGraph {
                 this.beltSegments.push(cutSegment);
                 prev.next = junction; // Connect the current belt to the junction
                 junction.addOutput(cutSegment);
-                cutSegment.prev = junction;                
+                cutSegment.prev = junction;
+                if (cutSegment.next instanceof Adder) { // Reconfigure the input on the adder to the cut segment
+                    let originEndPoint= cutSegment.points[cutSegment.points.length - 1];
+                    let cellType = matrix[originEndPoint.x][originEndPoint.y].Type;
+                    cutSegment.next.setBelt(cutSegment, cellType);
+                }            
                 newSegment = new BeltSegment(points, junction, next);
+                if (next instanceof Adder) {
+                    let nextEndPoint = points[points.length - 1];
+                    let cellType = matrix[nextEndPoint.x][nextEndPoint.y].Type;
+                    next.setBelt(newSegment, cellType);
+                }
                 junction.addOutput(newSegment);
                 result.beltSegments.push(prev);
                 this.beltSegments.push(newSegment);
@@ -97,7 +107,10 @@ class BeltGraph {
 
                 if (prev instanceof Extractor) {
                     prev.addBelt(newSegment);
+                } else if (prev instanceof Adder) {
+                    prev.setBelt(newSegment, CellType.ADDER_OUT);
                 }
+
                 result.beltSegments.push(next);
                 result.beltSegments.push(cutSegment);
                 result.junctions.push(junction);

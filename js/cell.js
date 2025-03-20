@@ -21,6 +21,5 @@ class Cell {
         this.Number = 0;
         this.Type = CellType.EMPTY;
         this.Component = null;
-        this.beltNode = null;
     }
 }

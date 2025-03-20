@@ -89,4 +89,19 @@ class Extractor {
         }
         return componentMatrix;
     }
+
+    removeBelt(belt) {
+        const index = this.belts.indexOf(belt);
+        if (index > -1) {
+            this.belts.splice(index, 1);
+        }
+    }
+
+    destroy() {
+        clearInterval(this.numberTimer);
+        this.numberTimer = null;
+        for (let belt of this.belts) {
+            belt.prev = null;
+        }
+    }
 }

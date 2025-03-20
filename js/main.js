@@ -17,12 +17,24 @@
 */
 
 //todo list:
-// Fix items moving to end of belt when there is no room in junction. It also looks like one item too many is added in the first place to the next belt segment, so the last item in the next belt segment is drawn on top of the junction.
-// Fix drawing belt inside/along exissting belt, cancel the belt if more than 1 cell is drawn on top of another belt not counting the end
 // Implement demolish functionality (draw rectangle to erase everything within)
-// Implement rotation of adder
+// Fix items moving to end of belt when there is no room in junction. It also looks like one item too many is added in the first place to the next belt segment, so the last item in the next belt segment is drawn on top of the junction.
+// Fix demolishing where "empty" junctions can stay forever. Perhps register junction input belts as well to be able to know when junction has no more belts in and out and can be removed.
+// If placing a component on top of a belt start or end, the belt and component should be connected.
+// Prevent making a back loop (how can we detect that?)
+// Fix drawing belt inside/along exissting belt, cancel the belt if more than 1 cell is drawn on top of another belt not counting the end
 // Implement upgrades like faster belts, extractors etc
-// Implement level ups from level 4 and forward
+// Implement level ups with new components from level 4 and forward
+// - Level 4: bridge
+// - Level 7: multiplier
+// - Level 10: belt priorities
+// - Level 13: subtractor
+// - Level 16: divider
+// - Level 19: exponentiator
+// - Level 22: storage
+// - Level 26: subtractor
+// - Level 29: subtractor
+
 // Implement a way to save and load the game in local storage, perhpas using random seend for the numbers and saving random seed, belt graph+components and levels+ statistics from trget.
 
 
@@ -35,6 +47,8 @@ const ctxConveyers = canvasConveyers.getContext('2d', { alpha: true });
 const canvasComponents = document.getElementById('canvasComponents');
 const ctxComponents = canvasComponents.getContext('2d', { alpha: true });
 
+var componentRotation = ComponentRotation.RIGHT;
+var hoverOver = null;
 let conveyerAnimationStep = 0;
 let statisticsTimer = null;
 const target = new Target(ctxComponents, (unlocks) => {
@@ -154,7 +168,7 @@ function initializeTestData() {
     let extractor = new Extractor(ctxComponents, 1, 520, 500);
     components.push(extractor);
     setCellComponent(520, 500, extractor);
-    let adder = new Adder(ctxComponents, 511, 500);
+    let adder = new Adder(ctxComponents, 511, 500, componentRotation);
     components.push(adder);
     setCellComponent(511, 500, adder);
     drawMode = DrawModeType.CONVEYER;
@@ -203,6 +217,10 @@ function drawComponents() {
         const posX = component.tileX * scaledCellSize + offsetX;
         const posY = component.tileY * scaledCellSize + offsetY;
         component.draw(posX, posY, scaledCellSize);
+        if (component == hoverOver) {
+            ctxComponents.fillStyle = 'rgba(255, 0, 0, 0.5)';
+            ctxComponents.fillRect(posX - component.constructor.AnchorX * scaledCellSize, posY - component.constructor.AnchorY * scaledCellSize, scaledCellSize * component.constructor.Width, scaledCellSize * component.constructor.Height);
+        }
     }
 }
 
@@ -234,7 +252,7 @@ function drawGrid() {
                     ctxGrid.fillText(cell.Number, drawX + scaledCellSize / 2, drawY + scaledCellSize / 2 + scale);
                 }
                 /*
-               ctxGrid.font = `${cellSize * scale / 4.0}px Arial`;
+                ctxGrid.font = `${cellSize * scale / 4.0}px Arial`;
                 ctxGrid.fillStyle = '#000000'; // Ensure the fill style is set to black
                 ctxGrid.fillText(cell.Type, drawX + scaledCellSize/8, drawY + scaledCellSize/8);
                 */
@@ -346,8 +364,7 @@ function handleMouseDown(event) {
             isDrawingConveyor = true;
             conveyorStartX = x;
             conveyorStartY = y;
-        }
-
+        } else
         // Check if placing an extractor
         if (drawMode === DrawModeType.EXTRACTOR) {
             if (cell && cell.Type === CellType.NUMBER && target.level >= cell.Number) {
@@ -371,12 +388,29 @@ function handleMouseDown(event) {
                     }
                 }
                 if (empty) {
-                    const adder = new Adder(ctxComponents, hoverX, hoverY);
+                    const adder = new Adder(ctxComponents, hoverX, hoverY, componentRotation);
                     components.push(adder);
                     setCellComponent(hoverX, hoverY, adder);
                     drawComponents();
                 }
             }
+        } else if (drawMode == DrawModeType.DEMOLISHER) {
+            if (hoverOver) {
+                for (let x=hoverOver.tileX; x<hoverOver.tileX+hoverOver.constructor.Width; x++) {
+                    for (let y=hoverOver.tileY; y<hoverOver.tileY+hoverOver.constructor.Height; y++) {
+                        matrix[x][y].Type = CellType.EMPTY;
+                        matrix[x][y].Component = null;
+                    }
+                }
+                if (hoverOver instanceof Extractor) {
+                    enableNumber(hoverOver.tileX, hoverOver.tileY, hoverOver.Number);
+                }
+                hoverOver.destroy();
+                components = components.filter(c => c !== hoverOver);
+                beltGraph.
+            }
+            drawGrid();
+            drawComponents();
         }
     }
 }
@@ -431,6 +465,14 @@ function handleMouseMove(event) {
                 conveyerDrawStartDirection = DirectionType.HORIZONTAL;
             } else if ((hoverX==conveyorStartX && hoverY-1==conveyorStartY) || (hoverX==conveyorStartX && hoverY+1==conveyorStartY)) {
                 conveyerDrawStartDirection = DirectionType.VERTICAL;
+            }
+        } else if (drawMode == DrawModeType.DEMOLISHER) {
+            if (hoverX >= 0 && hoverX < gridSize && hoverY >= 0 && hoverY < gridSize) {
+                let oldHoverOver = hoverOver;
+                hoverOver = matrix[hoverX][hoverY].Component;
+                if (hoverOver != oldHoverOver) {
+                    drawComponents();
+                }
             }
         }
     }
@@ -709,6 +751,18 @@ canvasComponents.addEventListener('mousemove', handleMouseMove);
 canvasComponents.addEventListener('mouseup', handleMouseUp);
 canvasComponents.addEventListener('contextmenu', event => event.preventDefault());
 
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'r' || event.key === 'R') {
+        if (event.shiftKey) {
+            // Counter-clockwise rotation
+            componentRotation = (componentRotation - 1 + 4) % 4;
+        } else {
+            // Clockwise rotation
+            componentRotation = (componentRotation + 1) % 4;
+        }
+    }
+});
+
 resizeCanvas();
 offsetX = canvasGrid.width / 2 - (gridSize * cellSize * scale) / 2;
 offsetY = canvasGrid.height / 2 - (gridSize * cellSize * scale) / 2;
@@ -735,7 +789,7 @@ function mainLoop() {
         const drawY = (hoverY - 1) * scaledCellSize + offsetY;
         ctxConveyers.fillRect(drawX, drawY, scaledCellSize * 3, scaledCellSize * 3);
     } else if (drawMode == DrawModeType.ADDER && hoverX >= 1 && hoverY >= 1 && hoverX < gridSize-1 && hoverY < gridSize-1) {
-        const adder = new Adder(ctxConveyers, hoverX, hoverY);
+        const adder = new Adder(ctxConveyers, hoverX, hoverY, componentRotation);
         adder.draw(hoverX * scaledCellSize + offsetX, hoverY * scaledCellSize + offsetY, scaledCellSize, true);
     }
 

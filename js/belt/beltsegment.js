@@ -213,4 +213,19 @@ class BeltSegment {
     addItem(item) {
         this.items.push(item);
     }
+
+    destroy() {
+        if (this.next) {
+            if (this.next.removeBelt) {
+                this.next.removeBelt(this);
+            }
+            this.next = null;
+        }
+        if (this.prev) {
+            if (this.prev.removeBelt) {
+                this.prev.removeBelt(this);
+            }
+            this.prev = null;
+        }
+    }
 }

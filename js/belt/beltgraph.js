@@ -234,4 +234,11 @@ class BeltGraph {
             }
         }
     }
+
+    removeBelt(belt) {
+        const index = this.beltSegments.indexOf(belt);
+        if (index > -1) {
+            this.beltSegments.splice(index, 1);
+        }
+    }
 }
